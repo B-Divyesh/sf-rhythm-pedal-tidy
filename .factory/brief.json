@@ -1,0 +1,9 @@
+{
+  "slug": "rhythm-pedal-tidy",
+  "title": "Rhythm Pedal Tidy",
+  "artifact_class": "pwa-offline",
+  "job": "Record or import sustain-pedal MIDI, remove repeated-note overlaps, compare the repair, and replay a scored practice take.",
+  "user": "Keyboard and e-kit players recording practice takes with sustain pedals.",
+  "monetization": "one-time",
+  "privacy": "All performance data is processed and stored locally."
+}

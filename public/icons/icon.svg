@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Rhythm Pedal Tidy icon">
+  <rect width="512" height="512" rx="76" fill="#f3eddd"/>
+  <path d="M64 94h384v324H64z" fill="#171813"/>
+  <path d="M94 128h324v184H94z" fill="#08766f"/>
+  <path d="M116 276V164h55v112zm75-44v-68h55v68zm75 44V164h55v112zm75-74v-38h55v38z" fill="#f3eddd"/>
+  <path d="M106 342h300v36H106z" fill="#c9342f"/>
+  <circle cx="129" cy="360" r="8" fill="#171813"/><circle cx="383" cy="360" r="8" fill="#171813"/>
+</svg>
