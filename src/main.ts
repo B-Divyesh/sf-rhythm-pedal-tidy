@@ -1,0 +1,341 @@
+import './style.css';
+import { parseMidi, sampleTake, scoreTiming, tidyTake, writeMidi } from './midi';
+import { checkoutUrl, consumeReturnLicense, licenseState, removeLicense, restoreLicense, type LicenseState } from './license';
+import { MidiPlayer } from './player';
+import { WebMidiRecorder, type MidiDevice } from './recorder';
+import { deleteTake, listTakes, replaceAllTakes, saveTake } from './storage';
+import type { CleanedNote, NoteEvent, Take } from './types';
+
+const app = document.querySelector<HTMLDivElement>('#app')!;
+const player = new MidiPlayer();
+const recorder = new WebMidiRecorder();
+let current: Take | null = null;
+let takes: Take[] = [];
+let license: LicenseState = { unlocked: false, pending: true };
+let devices: MidiDevice[] = [];
+let selectedDevice = '';
+let bpmStart = 80;
+let bpmEnd = 120;
+let bpmStep = 5;
+let currentBpm = 80;
+let playProgress = 0;
+let message = '';
+let messageType: 'status' | 'error' = 'status';
+let offline = !navigator.onLine;
+
+consumeReturnLicense();
+
+function escapeHtml(value: string): string {
+  return value.replace(/[&<>'"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[char]!);
+}
+
+function noteName(pitch: number): string {
+  const names = ['C', 'C♯', 'D', 'D♯', 'E', 'F', 'F♯', 'G', 'G♯', 'A', 'A♯', 'B'];
+  return `${names[pitch % 12]}${Math.floor(pitch / 12) - 1}`;
+}
+
+function download(data: BlobPart, name: string, type: string): void {
+  const url = URL.createObjectURL(new Blob([data], { type }));
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = name;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function duration(notes: NoteEvent[]): number {
+  return Math.max(1, ...notes.map((note) => note.endMs));
+}
+
+function timeline(notes: NoteEvent[], cleaned: boolean): string {
+  if (!notes.length) return '<p class="timeline-empty">No note events were found.</p>';
+  const high = Math.max(...notes.map((note) => note.pitch));
+  const low = Math.min(...notes.map((note) => note.pitch));
+  const rows = Math.max(8, high - low + 1);
+  const length = duration(notes);
+  const blocks = notes.map((note) => {
+    const item = note as CleanedNote;
+    const left = note.startMs / length * 100;
+    const width = Math.max(0.7, (note.endMs - note.startMs) / length * 100);
+    const top = (high - note.pitch) / rows * 100;
+    const removedWidth = cleaned && item.trimmedMs ? item.trimmedMs / length * 100 : 0;
+    return `<span class="note-block ${cleaned ? 'is-clean' : ''}" style="--x:${left}%;--w:${width}%;--y:${top}%;--v:${note.velocity / 127}" title="${noteName(note.pitch)}, ${(note.endMs - note.startMs).toFixed(0)} ms"></span>${removedWidth ? `<span class="trim-block" style="--x:${left + width}%;--w:${removedWidth}%;--y:${top}%" title="Removed ${item.trimmedMs.toFixed(0)} ms overlap"></span>` : ''}`;
+  }).join('');
+  return `<div class="roll" role="img" aria-label="${cleaned ? 'After cleanup' : 'Before cleanup'} piano roll with ${notes.length} notes, pitches ${noteName(low)} to ${noteName(high)}"><div class="playhead" style="--play:${playProgress * 100}%"></div>${blocks}</div>`;
+}
+
+function renderWorkspace(): string {
+  if (!current) {
+    return `<section class="empty-state" aria-labelledby="empty-title">
+      <span class="tape-number">SIDE A / READY</span>
+      <h2 id="empty-title">Bring in a pedal take</h2>
+      <p>Import a Standard MIDI file from any DAW or keyboard. We’ll find notes held open by CC64 and show every suggested cut before you export.</p>
+      <div class="action-row">
+        <button class="primary" data-action="import">Import MIDI or session</button>
+        <button class="secondary" data-action="sample">Try the example</button>
+      </div>
+      <p class="fineprint">Nothing uploads. Safari? Import works even when live Web MIDI does not.</p>
+    </section>`;
+  }
+  const result = tidyTake(current);
+  const cleaned = current.cleanedNotes ?? result.notes;
+  const score = scoreTiming(cleaned, current.bpm);
+  const accepted = current.accepted === true;
+  return `<section class="workbench" aria-labelledby="take-title">
+    <div class="take-heading">
+      <div><span class="tape-number">${escapeHtml(current.source.toUpperCase())} / ${new Date(current.createdAt).toLocaleDateString()}</span><h2 id="take-title">${escapeHtml(current.name)}</h2></div>
+      <button class="text-button danger-text" data-action="remove-current">Remove take</button>
+    </div>
+    <div class="stats-strip" aria-label="Take summary">
+      <div><strong>${current.notes.length}</strong><span>notes</span></div>
+      <div><strong>${current.pedals.filter((p) => p.down).length}</strong><span>pedal presses</span></div>
+      <div><strong>${result.changedCount}</strong><span>overlaps found</span></div>
+      <div><strong>${(result.overlapRemovedMs / 1000).toFixed(2)}s</strong><span>tangle removed</span></div>
+    </div>
+    <div class="diff-heading">
+      <div><span class="eyebrow">Pedal-aware repair</span><h3>${result.changedCount ? `${result.changedCount} clean cut${result.changedCount === 1 ? '' : 's'} suggested` : 'Already tidy'}</h3></div>
+      <div class="legend"><span class="key before-key">Original</span><span class="key clean-key">Kept</span><span class="key trim-key">Removed overlap</span></div>
+    </div>
+    <div class="diff-stack">
+      <div class="roll-row"><span>Before</span>${timeline(current.notes.map((note) => ({ ...note, endMs: (result.notes.find((n) => n.id === note.id)?.sustainedEndMs ?? note.endMs) })), false)}</div>
+      <div class="roll-row"><span>After</span>${timeline(cleaned, true)}</div>
+    </div>
+    <p class="explanation">${result.sustainedCount} note release${result.sustainedCount === 1 ? '' : 's'} extended to pedal-up. Repeated pitches are then cut at the next strike; timing and velocity stay untouched.</p>
+    <div class="approval-bar ${accepted ? 'accepted' : ''}">
+      <div><strong>${accepted ? 'Cleanup accepted' : 'Does this repair look right?'}</strong><span>${accepted ? 'Your acceptance is stored only on this device.' : 'Accepting helps you track whether the pass needed manual work.'}</span></div>
+      <button class="${accepted ? 'secondary' : 'primary'}" data-action="accept">${accepted ? 'Accepted ✓' : 'Accept cleanup'}</button>
+    </div>
+    <div class="practice-grid">
+      <section class="score-panel" aria-labelledby="score-title">
+        <span class="eyebrow">Timing card · ${score.subdivision}</span>
+        <div class="score-lockup"><strong>${score.score}</strong><div><h3 id="score-title">Timing score</h3><span>Mean offset ${score.meanErrorMs.toFixed(0)} ms</span></div></div>
+        <div class="score-breakdown"><span>On grid <b>${score.onGrid}</b></span><span>Early <b>${score.early}</b></span><span>Late <b>${score.late}</b></span></div>
+        <p>Score measures note starts against the nearest sixteenth-note pulse. It is feedback, not a judgment of feel.</p>
+      </section>
+      <section class="ramp-panel" aria-labelledby="ramp-title">
+        <span class="eyebrow">Practice replay</span>
+        <h3 id="ramp-title">Tempo ramp</h3>
+        <div class="tempo-readout"><strong>${currentBpm}</strong><span>BPM now</span></div>
+        <div class="field-row">
+          <label>Start <input data-field="bpm-start" type="number" min="30" max="240" value="${bpmStart}" /></label>
+          <label>Finish <input data-field="bpm-end" type="number" min="30" max="300" value="${bpmEnd}" /></label>
+          <label>Step <input data-field="bpm-step" type="number" min="1" max="30" value="${bpmStep}" /></label>
+        </div>
+        <div class="transport">
+          <button class="play-button" data-action="play" aria-pressed="${player.playing}">${player.playing ? '■ Stop replay' : '▶ Replay clean take'}</button>
+          <button class="secondary compact" data-action="reset-tempo">Reset tempo</button>
+        </div>
+        <p>Each completed replay adds ${bpmStep} BPM, up to ${bpmEnd}. Playback is a simple synth preview.</p>
+      </section>
+    </div>
+    <div class="export-bar">
+      <div><strong>Ready for your DAW</strong><span>Pedal sustain is baked into clean note lengths.</span></div>
+      <button class="primary" data-action="export-midi">Export cleaned MIDI</button>
+      <button class="secondary" data-action="export-json">Export session</button>
+    </div>
+  </section>`;
+}
+
+function renderHistory(): string {
+  if (!takes.length) return '<p class="muted">Your first take will appear here and survive refreshes.</p>';
+  const visible = license.unlocked ? takes : takes.slice(0, 1);
+  return `<ul class="take-list">${visible.map((take) => `<li class="${take.id === current?.id ? 'selected' : ''}"><button data-open="${take.id}"><strong>${escapeHtml(take.name)}</strong><span>${take.notes.length} notes · ${new Date(take.createdAt).toLocaleString()}</span></button><button class="delete-take" data-delete="${take.id}" aria-label="Delete ${escapeHtml(take.name)}">×</button></li>`).join('')}</ul>${!license.unlocked && takes.length > 1 ? `<p class="locked-note">${takes.length - 1} older take${takes.length === 2 ? '' : 's'} hidden in free mode. Unlock restores the full history.</p>` : ''}`;
+}
+
+function render(): void {
+  app.innerHTML = `<header class="site-header">
+    <a class="brand" href="/" aria-label="Rhythm Pedal Tidy home"><span class="brand-mark" aria-hidden="true">RPT</span><span>Rhythm Pedal Tidy</span></a>
+    <nav aria-label="Main navigation"><a href="#workspace">Workspace</a><a href="#takes">Takes</a><a href="#unlock">Unlock</a></nav>
+    <span class="privacy-stamp">LOCAL ONLY</span>
+  </header>
+  ${offline ? '<div class="offline-banner" role="status">Offline deck: imports, cleanup, replay, and exports still work.</div>' : ''}
+  <main id="main">
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="hero-copy"><span class="kicker">A one-click MIDI repair bench</span><h1 id="hero-title">Untangle the<br><em>pedal take.</em></h1><p>Record or import sustain-heavy MIDI. See each overlap. Keep the feel. Send a clean take back to your DAW.</p><a class="primary button-link" href="#workspace">Tidy a take ↓</a></div>
+      <picture class="hero-art"><source type="image/webp" media="(max-width: 700px)" srcset="/assets/pedal-tape-hero-720.webp"><source type="image/avif" srcset="/assets/pedal-tape-hero.avif"><source type="image/webp" srcset="/assets/pedal-tape-hero.webp"><img src="/assets/pedal-tape-hero.jpg" width="1200" height="800" alt="Risograph collage of a sustain pedal connected to a cassette and tidy piano-roll strip" decoding="async" fetchpriority="high"></picture>
+      <div class="hero-note" aria-label="How it works"><b>01</b> capture <span>→</span> <b>02</b> inspect <span>→</span> <b>03</b> export</div>
+    </section>
+    <section class="input-deck" id="workspace" aria-labelledby="input-title">
+      <div class="section-label"><span>INPUT / 01</span><h2 id="input-title">Load the take</h2></div>
+      <div class="input-controls">
+        <button class="primary" data-action="import">↑ Import .mid or session</button>
+        <div class="live-midi">
+          <button class="secondary" data-action="connect" ${license.unlocked ? '' : 'aria-describedby="live-lock"'}>${devices.length ? 'Refresh MIDI inputs' : 'Connect live MIDI'}</button>
+          ${license.unlocked && devices.length ? `<label>Input <select data-field="device"><option value="">Choose an input</option>${devices.map((device) => `<option value="${device.id}" ${device.id === selectedDevice ? 'selected' : ''}>${escapeHtml(device.name)}</option>`).join('')}</select></label><button class="record-button ${recorder.recording ? 'recording' : ''}" data-action="record">${recorder.recording ? '■ Stop take' : '● Record take'}</button>` : ''}
+          ${!license.unlocked ? '<span id="live-lock" class="lock-tag">PLUS · live record</span>' : ''}
+        </div>
+      </div>
+      <input class="visually-hidden" id="file-input" aria-label="Choose a MIDI or session file" type="file" accept=".mid,.midi,.json,audio/midi,application/json" />
+    </section>
+    <div id="announcer" class="status-line ${messageType}" role="status" aria-live="polite">${escapeHtml(message)}</div>
+    ${renderWorkspace()}
+    <section class="history-section" id="takes" aria-labelledby="takes-title">
+      <div class="section-label"><span>ARCHIVE / 02</span><h2 id="takes-title">Take shelf</h2></div>
+      <div class="history-layout"><div>${renderHistory()}</div><div class="data-tools"><p>Back up every locally saved take in one portable JSON file.</p><div class="action-row"><button class="secondary" data-action="backup">Export all data</button><button class="text-button" data-action="import">Import backup</button></div></div></div>
+    </section>
+    <section class="unlock-section" id="unlock" aria-labelledby="unlock-title">
+      <div class="price-sticker"><span>ONE TIME</span><strong>$12</strong><small>No subscription</small></div>
+      <div><span class="eyebrow">Plus license</span><h2 id="unlock-title">Plug the keyboard straight in.</h2><p>The free bench keeps MIDI import, cleanup, comparison, scoring, replay, and export. Plus adds live Web MIDI capture and unlimited take history.</p><ul><li>Live keyboard and e-kit input</li><li>Unlimited saved take shelf</li><li>One purchase, use on your devices</li></ul><p class="fineprint">Sociobot/Dodo is the merchant of record. Refunds are handled there and revoke the license.</p></div>
+      <div class="buy-panel">${license.unlocked ? `<strong class="unlocked">Plus is unlocked ✓</strong><p>${license.notice ?? 'License checked on this device.'}</p><button class="text-button" data-action="remove-license">Remove license</button>` : `<a class="primary button-link" href="${checkoutUrl()}">Buy Plus — $12</a><label for="license-token">Have a license? Paste it</label><div class="license-row"><input id="license-token" type="text" autocomplete="off" spellcheck="false"><button class="secondary" data-action="restore">Verify</button></div>${license.notice ? `<p class="license-notice">${escapeHtml(license.notice)}</p>` : ''}`}</div>
+    </section>
+  </main>
+  <footer><div><strong>Rhythm Pedal Tidy</strong><span>Made for the gap between practice and the piano roll.</span></div><nav aria-label="Legal"><a href="/privacy/">Privacy</a><a href="/terms/">Terms</a><a href="https://github.com/B-Divyesh/sf-rhythm-pedal-tidy">Source</a></nav><p>All processing stays on this device. Hero artwork is original AI-assisted risograph art.</p></footer>
+  <div id="update-toast" class="update-toast" hidden><span>A fresh version is ready.</span><button data-action="update">Update now</button></div>`;
+  bindEvents();
+}
+
+async function persist(take: Take): Promise<void> {
+  await saveTake(take);
+  takes = await listTakes();
+}
+
+async function loadTake(take: Take, announcement: string): Promise<void> {
+  if (!take.notes.length) throw new Error('No note events were found in that take.');
+  const result = tidyTake(take);
+  current = { ...take, cleanedNotes: result.notes };
+  bpmEnd = Math.max(30, current.bpm);
+  bpmStart = Math.max(30, bpmEnd - 20);
+  currentBpm = bpmStart;
+  await persist(current);
+  messageType = 'status';
+  message = announcement;
+  render();
+  document.querySelector('#take-title')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+async function handleFile(file: File): Promise<void> {
+  if (file.size > 20 * 1024 * 1024) throw new Error('That file is over 20 MB. Split the take and try again.');
+  if (file.name.toLowerCase().endsWith('.json')) {
+    const parsed = JSON.parse(await file.text()) as { version?: number; takes?: Take[] } | Take;
+    if ('takes' in parsed && Array.isArray(parsed.takes)) {
+      await replaceAllTakes(parsed.takes);
+      takes = await listTakes();
+      current = takes[0] ?? null;
+      message = `Restored ${takes.length} local take${takes.length === 1 ? '' : 's'}.`;
+      render();
+      return;
+    }
+    if (!('notes' in parsed) || !Array.isArray(parsed.notes)) throw new Error('That session JSON does not contain MIDI notes.');
+    await loadTake({ ...parsed, id: crypto.randomUUID(), source: 'json', createdAt: new Date().toISOString() } as Take, 'Session imported and cleaned.');
+    return;
+  }
+  await loadTake(parseMidi(await file.arrayBuffer(), file.name), 'MIDI imported. Cleanup suggestions are ready.');
+}
+
+function bindEvents(): void {
+  document.querySelectorAll<HTMLElement>('[data-action]').forEach((element) => element.addEventListener('click', async () => {
+    const action = element.dataset.action;
+    try {
+      if (action === 'import') document.querySelector<HTMLInputElement>('#file-input')?.click();
+      else if (action === 'sample') await loadTake(sampleTake(), 'Example loaded. The same pass runs on your own MIDI.');
+      else if (action === 'connect') {
+        if (!license.unlocked) { location.hash = 'unlock'; return; }
+        devices = await recorder.connect();
+        message = devices.length ? `${devices.length} MIDI input${devices.length === 1 ? '' : 's'} found.` : 'No MIDI inputs found. Connect a device, then refresh inputs.';
+        render();
+      } else if (action === 'record') {
+        if (recorder.recording) {
+          const take = recorder.stop(currentBpm);
+          if (!take.notes.length) { message = 'No notes were received. Check the selected input and try again.'; messageType = 'error'; render(); }
+          else await loadTake(take, 'Live take captured and cleaned.');
+        } else {
+          if (!selectedDevice) throw new Error('Choose a MIDI input before recording.');
+          recorder.select(selectedDevice);
+          recorder.start();
+          message = 'Recording. Play now; pedal CC64 is being captured.';
+          render();
+        }
+      } else if (action === 'accept' && current) {
+        current.accepted = true;
+        await persist(current);
+        message = 'Cleanup accepted. Nice take.';
+        render();
+      } else if (action === 'play' && current) {
+        if (player.playing) { player.stop(); playProgress = 0; render(); }
+        else {
+          const notes = current.cleanedNotes ?? tidyTake(current).notes;
+          const speed = currentBpm / current.bpm;
+          await player.play(notes, speed, (value) => { playProgress = value; document.querySelectorAll<HTMLElement>('.playhead').forEach((node) => node.style.setProperty('--play', `${value * 100}%`)); }, () => { playProgress = 0; currentBpm = Math.min(bpmEnd, currentBpm + bpmStep); message = currentBpm === bpmEnd ? `Replay complete. You reached ${bpmEnd} BPM.` : `Replay complete. Next pass: ${currentBpm} BPM.`; render(); });
+          render();
+        }
+      } else if (action === 'reset-tempo') { currentBpm = bpmStart; message = `Tempo reset to ${currentBpm} BPM.`; render(); }
+      else if (action === 'export-midi' && current) {
+        download(writeMidi(current.cleanedNotes ?? tidyTake(current).notes, current.bpm).buffer as ArrayBuffer, `${current.name.replace(/[^a-z0-9-_]+/gi, '-').toLowerCase()}-tidy.mid`, 'audio/midi');
+        message = 'Cleaned MIDI exported.'; render();
+      } else if (action === 'export-json' && current) {
+        download(JSON.stringify(current, null, 2), `${current.name.replace(/[^a-z0-9-_]+/gi, '-').toLowerCase()}.json`, 'application/json');
+      } else if (action === 'backup') {
+        download(JSON.stringify({ version: 1, exportedAt: new Date().toISOString(), takes }, null, 2), 'rhythm-pedal-tidy-backup.json', 'application/json');
+      } else if (action === 'restore') {
+        const token = document.querySelector<HTMLInputElement>('#license-token')?.value.trim();
+        if (!token) throw new Error('Paste your license token first.');
+        restoreLicense(token);
+        license = await licenseState(true);
+        message = license.unlocked ? 'Plus restored on this device.' : 'That license could not be verified.';
+        messageType = license.unlocked ? 'status' : 'error';
+        render();
+      } else if (action === 'remove-license') { removeLicense(); license = { unlocked: false, pending: false }; render(); }
+      else if (action === 'remove-current' && current) {
+        if (confirm(`Remove “${current.name}” from this device? Export it first if you need a copy.`)) {
+          await deleteTake(current.id); takes = await listTakes(); current = takes[0] ?? null; message = 'Take removed from this device.'; render();
+        }
+      } else if (action === 'update') location.reload();
+    } catch (error) {
+      messageType = 'error';
+      message = error instanceof Error ? error.message : 'Something went wrong. Try again.';
+      render();
+    }
+  }));
+  document.querySelector<HTMLInputElement>('#file-input')?.addEventListener('change', async (event) => {
+    const file = (event.currentTarget as HTMLInputElement).files?.[0];
+    if (!file) return;
+    try { await handleFile(file); } catch (error) { messageType = 'error'; message = error instanceof Error ? error.message : 'Could not import that file.'; render(); }
+  });
+  document.querySelector<HTMLSelectElement>('[data-field="device"]')?.addEventListener('change', (event) => { selectedDevice = (event.currentTarget as HTMLSelectElement).value; });
+  for (const field of ['bpm-start', 'bpm-end', 'bpm-step'] as const) document.querySelector<HTMLInputElement>(`[data-field="${field}"]`)?.addEventListener('change', (event) => {
+    const value = Number((event.currentTarget as HTMLInputElement).value);
+    if (field === 'bpm-start') { bpmStart = value; currentBpm = value; }
+    else if (field === 'bpm-end') bpmEnd = value;
+    else bpmStep = value;
+    render();
+  });
+  document.querySelectorAll<HTMLButtonElement>('[data-open]').forEach((button) => button.addEventListener('click', () => { current = takes.find((take) => take.id === button.dataset.open) ?? current; if (current) currentBpm = current.bpm; render(); location.hash = 'workspace'; }));
+  document.querySelectorAll<HTMLButtonElement>('[data-delete]').forEach((button) => button.addEventListener('click', async () => {
+    const take = takes.find((item) => item.id === button.dataset.delete);
+    if (take && confirm(`Delete “${take.name}” from this device?`)) { await deleteTake(take.id); takes = await listTakes(); if (current?.id === take.id) current = takes[0] ?? null; render(); }
+  }));
+}
+
+window.addEventListener('online', () => { offline = false; message = 'Back online.'; render(); });
+window.addEventListener('offline', () => { offline = true; render(); });
+window.addEventListener('keydown', (event) => {
+  if ((event.target as HTMLElement).matches('input, select, textarea, button, a')) return;
+  if (event.code === 'Space' && current) { event.preventDefault(); document.querySelector<HTMLButtonElement>('[data-action="play"]')?.click(); }
+});
+
+async function init(): Promise<void> {
+  render();
+  try { takes = await listTakes(); current = takes[0] ?? null; } catch { messageType = 'error'; message = 'Local storage is unavailable. You can still work, but this take may not survive a refresh.'; }
+  render();
+  license = await licenseState();
+  render();
+  if ('serviceWorker' in navigator) {
+    try {
+      const registration = await navigator.serviceWorker.register('/sw.js');
+      registration.addEventListener('updatefound', () => {
+        const worker = registration.installing;
+        worker?.addEventListener('statechange', () => {
+          if (worker.state === 'installed' && navigator.serviceWorker.controller) document.querySelector<HTMLElement>('#update-toast')!.hidden = false;
+        });
+      });
+    } catch { /* the app remains usable without installation support */ }
+  }
+  try {
+    await fetch(`/online-check?${Date.now()}`, { method: 'HEAD', cache: 'no-store' });
+  } catch {
+    offline = true;
+    render();
+  }
+}
+
+void init();
