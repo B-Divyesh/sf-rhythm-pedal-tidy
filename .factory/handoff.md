@@ -1,5 +1,27 @@
 # Rhythm Pedal Tidy — build handoff
 
+## Independent verification addendum — FAIL
+
+Verified on 2026-08-27 against candidate commit
+`4c006ebd3d84d612cb7c4f31ea4c3efa51a58b5d` and
+<https://rhythm-pedal-tidy.sociobot.in>. This addendum supersedes any prior
+pass implication in this handoff.
+
+The candidate artifact is deployed byte-for-byte, and clean install, unit,
+build, Playwright, accessibility, core import/cleanup/export, offline reload,
+and service-worker update-notice checks passed. **Do not release as passing:**
+
+- **P2:** Start/Finish/Step tempo inputs accept invalid values into app state;
+  for example, Start `29` produces BPM now `29` despite the stated 30 BPM
+  minimum. Add validation/clamping and an announced recovery message.
+- **P2:** production hashed JS and CSS use `cache-control: public,
+  must-revalidate, max-age=30`, not immutable long-lived caching required for
+  this static PWA. Fix the deployment cache policy for hashed assets.
+- **P3:** production lacks CSP, Permissions-Policy, and a frame-embedding
+  response policy.
+
+Full fresh evidence and commands are in `.factory/verification-1.md`.
+
 Date: 2026-08-27
 
 Work order: `rhythm-pedal-tidy-build-1`
