@@ -80,5 +80,5 @@ and infrastructure are intentionally outside this repository.
 ## Visual system and license
 
 The cassette-era zine system and original artwork provenance are recorded in
-[`.factory/design.md`](.factory/design.md). Source is MIT licensed; see
-[`LICENSE`](LICENSE).
+[.factory/design.md](.factory/design.md). Source is MIT licensed; see
+[LICENSE](LICENSE).
