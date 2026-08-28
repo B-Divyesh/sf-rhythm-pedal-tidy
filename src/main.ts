@@ -166,7 +166,7 @@ function render(): void {
           ${!license.unlocked ? '<span id="live-lock" class="lock-tag">PLUS · live record</span>' : ''}
         </div>
       </div>
-      <input class="visually-hidden" id="file-input" aria-label="Choose a MIDI or session file" type="file" accept=".mid,.midi,.json,audio/midi,application/json" />
+      <input class="visually-hidden" id="file-input" tabindex="-1" aria-label="Choose a MIDI or session file" type="file" accept=".mid,.midi,.json,audio/midi,application/json" />
     </section>
     <div id="announcer" class="status-line ${messageType}" role="status" aria-live="polite">${escapeHtml(message)}</div>
     ${renderWorkspace()}

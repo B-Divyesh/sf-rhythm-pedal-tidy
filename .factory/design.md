@@ -49,6 +49,9 @@ paired with a label, hatch pattern, or shape.
   taped labels make hierarchy obvious. Corners are mostly square.
 - Primary actions are red blocks; transport buttons are mechanical controls;
   selected modes appear pressed down by losing their offset shadow.
+- Keyboard focus uses a paired tape-and-ink ring: tape is legible on the dark
+  deck and ink is legible on paper, tape, and red controls. It replaces a
+  single decorative accent so every keyboard stop is visually accountable.
 - The diff view uses solid teal for the repaired duration and red hatching for
   the removed overlap. The before/after meaning is also written in its legend
   and accessible summary.
