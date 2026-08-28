@@ -1,8 +1,8 @@
-const VERSION = 'rpt-v3';
+const VERSION = 'rpt-v4';
 const SHELL = `${VERSION}-shell`;
 const ASSETS = `${VERSION}-assets`;
 const PRECACHE = [
-  '/', '/?v=1', '/offline.html', '/manifest.webmanifest', '/icons/icon.svg',
+  '/', '/?v=2', '/offline.html', '/manifest.webmanifest', '/icons/icon.svg',
   '/icons/icon-192.png', '/icons/icon-512.png', '/icons/icon-maskable-512.png',
   '/assets/pedal-tape-hero-720.webp', '/assets/pedal-tape-hero.avif', '/assets/pedal-tape-hero.webp', '/assets/pedal-tape-hero.jpg',
   '/privacy/', '/terms/'
