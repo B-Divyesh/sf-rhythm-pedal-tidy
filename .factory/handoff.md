@@ -4,6 +4,7 @@ Date: 2026-08-28
 Work order: `rhythm-pedal-tidy-repair-3`
 Verifier report: `.factory/verification-3.md`
 Verifier candidate: `7f20cb0f471e1a6be4b1b66ec43b976091794d8f`
+Repaired product commit: `7767e6a8985f329b7aeca90e5ad2a3c11344225c`
 Deployment: <https://rhythm-pedal-tidy.sociobot.in>
 
 ## Result
@@ -58,9 +59,8 @@ root. Deploy `dist/` with:
   remains an explicit license action.
 - Mobile Lighthouse against the production build preview: Performance 100,
   Accessibility 100, Best Practices 100, SEO 92; FCP 1.0 s, LCP 1.6 s, TBT
-  0 ms, CLS 0. The existing static-host SEO configuration is unchanged.
-- The production post-deploy identity, response-header, offline/service-worker
-  control/update, and live URL checks are recorded below after deployment.
+  0 ms, CLS 0. Production's static-host response configuration scores 100 for
+  SEO as recorded below.
 
 ## Privacy and remaining limitation
 
@@ -72,4 +72,26 @@ fallback is covered end to end.
 
 ## Post-deploy evidence
 
-Pending deployment from this repair work order.
+- Azure Static Web Apps deployment `bbd6b89c-5d56-47a2-849d-777ab51e0822`
+  completed successfully. `verify-url.sh` returned HTTPS 200 in 891 ms with
+  the expected title, `lang=en`, one h1, main landmark, image alt text, and no
+  browser errors.
+- Live SHA-256 comparisons exactly match `dist/`: `index.html`
+  `4bbc24b9defaf214f35c68c2c5bcb7b2934f19a524af667316c91fbea4079cb5`,
+  `sw.js` `bb498725260d160a5665e3b434e6f3980f5fc7871251c9a43780f1ca62417b6f`,
+  app JS `1be08276f81859101f50fad70a1159f1803469198f0aefa41a188e10f907a810`,
+  and CSS `cf14750cde6ed0f1940c45e24ccdbea5bf373dd32e4a2d11f54e83444178ecc5`.
+- Live `/` supplies HSTS, CSP including `frame-ancestors 'none'`, a
+  MIDI-preserving Permissions-Policy, `X-Frame-Options: DENY`, nosniff, and
+  the strict-origin referrer policy. Normal live browsing made requests only
+  to `https://rhythm-pedal-tidy.sociobot.in`, with no console/page errors.
+- Fresh live 390 × 844 verification after loading the example: Plus
+  `clientWidth: 390`, `scrollWidth: 390`; main `scrollWidth: 390` and
+  `overflow-x: visible`; all Plus descendant rectangles remain in bounds. A
+  service worker controlled the app; an offline reload retained the Offline
+  deck notice and Export cleaned MIDI control.
+- A controlled local old-worker-to-current-worker update showed the in-app
+  “A fresh version is ready.” toast and created the current `rpt-v4-shell`
+  cache, confirming the update path without changing the shipped source.
+- Production mobile Lighthouse: Performance 100, Accessibility 100, Best
+  Practices 100, SEO 100; FCP 0.9 s, LCP 1.2 s, TBT 10 ms, CLS 0.
