@@ -14,8 +14,10 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
-    "@playwright/test": "^1.55.0",
+    "@types/node": "^24.10.1",
+    "@playwright/test": "1.58.2",
     "@types/webmidi": "^2.0.10",
+    "playwright-core": "1.58.2",
     "sharp-cli": "^6.0.0",
     "typescript": "^5.9.2",
     "vite": "^7.1.3",

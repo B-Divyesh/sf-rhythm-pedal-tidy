@@ -4,6 +4,7 @@ import { checkoutUrl, consumeReturnLicense, licenseState, removeLicense, restore
 import { MidiPlayer } from './player';
 import { WebMidiRecorder, type MidiDevice } from './recorder';
 import { deleteTake, listTakes, replaceAllTakes, saveTake } from './storage';
+import { updateTempo, type TempoField } from './tempo';
 import type { CleanedNote, NoteEvent, Take } from './types';
 
 const app = document.querySelector<HTMLDivElement>('#app')!;
@@ -117,15 +118,15 @@ function renderWorkspace(): string {
         <h3 id="ramp-title">Tempo ramp</h3>
         <div class="tempo-readout"><strong>${currentBpm}</strong><span>BPM now</span></div>
         <div class="field-row">
-          <label>Start <input data-field="bpm-start" type="number" min="30" max="240" value="${bpmStart}" /></label>
-          <label>Finish <input data-field="bpm-end" type="number" min="30" max="300" value="${bpmEnd}" /></label>
-          <label>Step <input data-field="bpm-step" type="number" min="1" max="30" value="${bpmStep}" /></label>
+          <label>Start <input data-field="bpm-start" type="number" min="30" max="240" step="1" value="${bpmStart}" aria-describedby="tempo-guidance" /></label>
+          <label>Finish <input data-field="bpm-end" type="number" min="${bpmStart}" max="300" step="1" value="${bpmEnd}" aria-describedby="tempo-guidance" /></label>
+          <label>Step <input data-field="bpm-step" type="number" min="1" max="30" step="1" value="${bpmStep}" aria-describedby="tempo-guidance" /></label>
         </div>
         <div class="transport">
           <button class="play-button" data-action="play" aria-pressed="${player.playing}">${player.playing ? '■ Stop replay' : '▶ Replay clean take'}</button>
           <button class="secondary compact" data-action="reset-tempo">Reset tempo</button>
         </div>
-        <p>Each completed replay adds ${bpmStep} BPM, up to ${bpmEnd}. Playback is a simple synth preview.</p>
+        <p id="tempo-guidance">Start is 30–240 BPM, Finish is ${bpmStart}–300 BPM, and Step is 1–30 BPM. Each completed replay adds ${bpmStep} BPM, up to ${bpmEnd}. Playback is a simple synth preview.</p>
       </section>
     </div>
     <div class="export-bar">
@@ -292,11 +293,13 @@ function bindEvents(): void {
     try { await handleFile(file); } catch (error) { messageType = 'error'; message = error instanceof Error ? error.message : 'Could not import that file.'; render(); }
   });
   document.querySelector<HTMLSelectElement>('[data-field="device"]')?.addEventListener('change', (event) => { selectedDevice = (event.currentTarget as HTMLSelectElement).value; });
-  for (const field of ['bpm-start', 'bpm-end', 'bpm-step'] as const) document.querySelector<HTMLInputElement>(`[data-field="${field}"]`)?.addEventListener('change', (event) => {
-    const value = Number((event.currentTarget as HTMLInputElement).value);
-    if (field === 'bpm-start') { bpmStart = value; currentBpm = value; }
-    else if (field === 'bpm-end') bpmEnd = value;
-    else bpmStep = value;
+  for (const field of ['bpm-start', 'bpm-end', 'bpm-step'] as TempoField[]) document.querySelector<HTMLInputElement>(`[data-field="${field}"]`)?.addEventListener('change', (event) => {
+    const update = updateTempo({ start: bpmStart, end: bpmEnd, step: bpmStep, current: currentBpm }, field, (event.currentTarget as HTMLInputElement).value);
+    bpmStart = update.state.start;
+    bpmEnd = update.state.end;
+    bpmStep = update.state.step;
+    currentBpm = update.state.current;
+    if (update.announcement) { messageType = 'status'; message = update.announcement; }
     render();
   });
   document.querySelectorAll<HTMLButtonElement>('[data-open]').forEach((button) => button.addEventListener('click', () => { current = takes.find((take) => take.id === button.dataset.open) ?? current; if (current) currentBpm = current.bpm; render(); location.hash = 'workspace'; }));

@@ -55,3 +55,22 @@ test('keyboard shortcut starts and stops replay', async ({ page }) => {
   await page.keyboard.press('Space');
   await expect(page.getByRole('button', { name: 'Replay clean take' })).toBeVisible();
 });
+
+test('tempo ramp recovers invalid values without putting them into playback state', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Try the example' }).click();
+
+  const start = page.getByRole('spinbutton', { name: 'Start' });
+  await start.fill('29');
+  await start.blur();
+
+  await expect(start).toHaveValue('30');
+  await expect(page.getByText('BPM now', { exact: true }).locator('..').getByText('30', { exact: true })).toBeVisible();
+  await expect(page.locator('#announcer')).toHaveText('Start must be between 30 and 240 BPM. It was set to 30 BPM.');
+
+  const step = page.getByRole('spinbutton', { name: 'Step' });
+  await step.fill('');
+  await step.blur();
+  await expect(step).toHaveValue('5');
+  await expect(page.locator('#announcer')).toHaveText('Step needs a whole BPM value. It was restored to 5 BPM.');
+});
