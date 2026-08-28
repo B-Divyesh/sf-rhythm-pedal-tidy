@@ -59,6 +59,31 @@ test('sample cleanup works at mobile width and survives offline', async ({ page,
   await expect(page.getByRole('button', { name: /Export cleaned MIDI/i })).toBeVisible();
 });
 
+test('mobile Plus content stays reachable inside its section', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Try the example' }).click();
+
+  const overflow = await page.locator('.unlock-section').evaluate((section) => {
+    const bounds = section.getBoundingClientRect();
+    const descendants = Array.from(section.querySelectorAll<HTMLElement>('*'));
+    return {
+      sectionClientWidth: section.clientWidth,
+      sectionScrollWidth: section.scrollWidth,
+      mainOverflow: getComputedStyle(document.querySelector('main')!).overflowX,
+      clipped: descendants.flatMap((element) => {
+        const rect = element.getBoundingClientRect();
+        if (!rect.width || !rect.height || (rect.left >= bounds.left - 0.5 && rect.right <= bounds.right + 0.5)) return [];
+        return [{ tag: element.tagName, className: element.className, left: rect.left, right: rect.right }];
+      })
+    };
+  });
+
+  expect(overflow.sectionScrollWidth).toBeLessThanOrEqual(overflow.sectionClientWidth);
+  expect(overflow.mainOverflow).not.toBe('hidden');
+  expect(overflow.clipped).toEqual([]);
+});
+
 test('keyboard shortcut starts and stops replay', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'Try the example' }).click();

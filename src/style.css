@@ -40,7 +40,6 @@ button:active, .button-link:active { transform: translate(3px, 3px); box-shadow:
 .site-header nav a, footer nav a { font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
 .privacy-stamp { padding: 4px 9px; color: var(--deep-red); border: 2px solid var(--red); font-size: 12px; font-weight: bold; transform: rotate(2deg); }
 .offline-banner { padding: 9px 20px; text-align: center; color: var(--ink); background: var(--mustard); border-bottom: 2px solid var(--ink); font-weight: bold; }
-main { overflow: hidden; }
 .hero { position: relative; min-height: 620px; display: grid; grid-template-columns: minmax(330px, .78fr) 1.22fr; align-items: stretch; border-bottom: 4px solid var(--ink); }
 .hero-copy { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; padding: 64px 24px 90px max(24px, calc((100vw - 1280px) / 2)); }
 .hero-copy::before { content: "+"; position: absolute; top: 30px; left: max(24px, calc((100vw - 1280px) / 2)); font: 34px var(--mono); }
@@ -143,7 +142,8 @@ input, select { min-height: 44px; max-width: 100%; margin-top: 4px; padding: 8px
 .delete-take { width: 52px; border: 0; border-left: 2px solid var(--ink); background: transparent; cursor: pointer; font-size: 26px; }
 .locked-note, .license-notice { color: var(--deep-red); font-size: 14px; font-weight: bold; }
 .data-tools { align-self: start; padding: 18px; border: 2px dashed var(--ink); }
-.unlock-section { display: grid; grid-template-columns: 180px 1fr minmax(280px, .65fr); align-items: center; gap: 40px; padding: 72px max(24px, calc((100vw - 1280px) / 2)); color: var(--paper); background: var(--deep-red); border-bottom: 4px solid var(--ink); }
+.unlock-section { display: grid; grid-template-columns: minmax(0, 180px) minmax(0, 1fr) minmax(280px, .65fr); align-items: center; gap: 40px; padding: 72px max(24px, calc((100vw - 1280px) / 2)); color: var(--paper); background: var(--deep-red); border-bottom: 4px solid var(--ink); }
+.unlock-section > * { min-width: 0; }
 .unlock-section .eyebrow { color: var(--paper); }
 .unlock-section p { max-width: 650px; }
 .unlock-section ul { padding-left: 20px; font-weight: bold; }
@@ -178,7 +178,7 @@ footer p { max-width: 320px; text-align: right; }
   .hero-note { right: 0; }
   .input-deck, .history-layout { grid-template-columns: 1fr; }
   .practice-grid { grid-template-columns: 1fr; }
-  .unlock-section { grid-template-columns: 160px 1fr; }
+  .unlock-section { grid-template-columns: minmax(0, 160px) minmax(0, 1fr); }
   .buy-panel { grid-column: 1 / -1; }
   footer { grid-template-columns: 1fr 1fr; }
   footer p { grid-column: 1 / -1; text-align: left; }
@@ -211,7 +211,7 @@ footer p { max-width: 320px; text-align: right; }
   .field-row input { width: 100%; }
   .transport { align-items: stretch; flex-direction: column; }
   .history-section { padding-top: 48px; padding-bottom: 48px; }
-  .unlock-section { grid-template-columns: 1fr; padding-top: 56px; }
+  .unlock-section { grid-template-columns: minmax(0, 1fr); padding-top: 56px; }
   .price-sticker { width: 132px; height: 132px; }
   footer { grid-template-columns: 1fr; }
   footer p { grid-column: auto; }
