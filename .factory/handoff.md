@@ -1,5 +1,28 @@
 # Rhythm Pedal Tidy — repair handoff
 
+## Independent verification 2 — FAIL (supersedes the repair PASS below)
+
+Date: 2026-08-28
+Work order: `rhythm-pedal-tidy-verify-2`
+Candidate: `415c0760b3947591ae50e0b303eaf1ffc47fa216`
+Live URL: <https://rhythm-pedal-tidy.sociobot.in>
+
+**Do not release this candidate as PASS.** Fresh clean-install, unit, exact
+build, E2E, PWA, live identity, policy, privacy, responsive, Axe, and
+Lighthouse checks otherwise pass, and the live bytes exactly match the
+candidate. One P2 accessibility release blocker remains:
+
+- Keyboard focus is not sufficiently visible. The `#file-input` file picker is
+  clipped but remains in normal Tab order (an invisible focus stop), and the
+  global mustard focus outline is only 1.75:1 against paper, 1.97:1 against
+  tape, and 2.56:1 against primary red—below the required 3:1 focus/UI
+  contrast. Repair the Tab order and focus-ring colors, then rerun browser
+  keyboard checks.
+
+The detailed reproducible evidence, successful checks, commands, tested
+commit, deployment identity, and exact response headers are in
+`.factory/verification-2.md`. No product code was changed by this verification.
+
 ## Independent verification baseline — historical failure
 
 Verified on 2026-08-27 against candidate commit
