@@ -78,21 +78,26 @@ test('mobile keyboard import path has no hidden file-picker stop and shows a hig
   await expect(fileInput).toHaveAttribute('tabindex', '-1');
 
   const tabStops: string[] = [];
+  let importButtonReached = false;
   for (let index = 0; index < 10; index += 1) {
     await page.keyboard.press('Tab');
-    tabStops.push(await page.evaluate(() => document.activeElement?.id ?? ''));
+    const active = await page.evaluate(() => ({ id: document.activeElement?.id ?? '', action: document.activeElement?.getAttribute('data-action') ?? '' }));
+    tabStops.push(active.id || active.action);
+    importButtonReached ||= active.action === 'import';
+    if (importButtonReached) break;
   }
   expect(tabStops).not.toContain('file-input');
+  expect(importButtonReached).toBe(true);
 
-  await importButton.focus();
   await expect(importButton).toBeFocused();
+  await page.waitForTimeout(200);
   const focusRing = await importButton.evaluate((element) => {
     const style = getComputedStyle(element);
     return { outlineColor: style.outlineColor, outlineWidth: style.outlineWidth, boxShadow: style.boxShadow };
   });
   expect(focusRing.outlineColor).toBe('rgb(255, 250, 240)');
   expect(focusRing.outlineWidth).toBe('3px');
-  expect(focusRing.boxShadow).toContain('rgb(23, 24, 19)');
+  expect(focusRing.boxShadow).toContain('rgb(23, 24, 19) 0px 0px 0px 6px');
   expect(contrastRatio('#fffaf0', '#c9342f')).toBeGreaterThanOrEqual(3);
   expect(contrastRatio('#171813', '#f3eddd')).toBeGreaterThanOrEqual(3);
   expect(contrastRatio('#171813', '#fffaf0')).toBeGreaterThanOrEqual(3);

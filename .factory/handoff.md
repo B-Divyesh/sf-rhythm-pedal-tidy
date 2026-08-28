@@ -1,206 +1,78 @@
 # Rhythm Pedal Tidy — repair handoff
 
-## Independent verification 2 — FAIL (supersedes the repair PASS below)
-
 Date: 2026-08-28
-Work order: `rhythm-pedal-tidy-verify-2`
-Candidate: `415c0760b3947591ae50e0b303eaf1ffc47fa216`
-Live URL: <https://rhythm-pedal-tidy.sociobot.in>
 
-**Do not release this candidate as PASS.** Fresh clean-install, unit, exact
-build, E2E, PWA, live identity, policy, privacy, responsive, Axe, and
-Lighthouse checks otherwise pass, and the live bytes exactly match the
-candidate. One P2 accessibility release blocker remains:
+Work order: `rhythm-pedal-tidy-repair-2`
 
-- Keyboard focus is not sufficiently visible. The `#file-input` file picker is
-  clipped but remains in normal Tab order (an invisible focus stop), and the
-  global mustard focus outline is only 1.75:1 against paper, 1.97:1 against
-  tape, and 2.56:1 against primary red—below the required 3:1 focus/UI
-  contrast. Repair the Tab order and focus-ring colors, then rerun browser
-  keyboard checks.
+Verifier base: `18c061b7452755999eed276d312a01727ee614d9`
 
-The detailed reproducible evidence, successful checks, commands, tested
-commit, deployment identity, and exact response headers are in
-`.factory/verification-2.md`. No product code was changed by this verification.
+Repaired product commit: `ed80b042cbd7a3076d8a962f8c7525bbedef9887`
+Deployment: <https://rhythm-pedal-tidy.sociobot.in> (Azure Static Web Apps,
+deployment `b1e816b3-d5b3-420f-b4e8-2d32b4b1d02f`)
 
-## Independent verification baseline — historical failure
+## Result
 
-Verified on 2026-08-27 against candidate commit
-`4c006ebd3d84d612cb7c4f31ea4c3efa51a58b5d` and
-<https://rhythm-pedal-tidy.sociobot.in>. This addendum supersedes any prior
-pass implication in this handoff.
+The sole remaining P2 in `.factory/verification-2.md` is repaired. The
+original local-first import, pedal-aware cleanup, comparison, replay, export,
+IndexedDB persistence, offline shell, free path, and optional live-MIDI
+license behavior are unchanged.
 
-The candidate artifact is deployed byte-for-byte, and clean install, unit,
-build, Playwright, accessibility, core import/cleanup/export, offline reload,
-and service-worker update-notice checks passed. **Do not release as passing:**
+| Verifier finding | Repair | Exact regression coverage |
+| --- | --- | --- |
+| The clipped `#file-input` was an invisible Tab stop at 390 px. | The native picker is now `tabindex="-1"`; visible, labelled Import buttons continue to activate it programmatically. | The 390 × 844 Playwright test tabs from the document start until the import action, asserts the picker is never active, and asserts the import action is reached. |
+| The mustard focus outline was below 3:1 on paper, tape, and red controls. | App and legal pages now use a two-part tape/ink focus ring: `#fffaf0` inner outline plus `#171813` outer ring. | Browser coverage waits through the focus transition and checks the rendered 3 px tape outline and 6 px ink ring. It also asserts contrast ratios of 5.03:1 on red, 15.27:1 on paper, 17.16:1 on tape, and 17.16:1 on ink. Legal-page keyboard focus is covered too. |
 
-- **P2:** Start/Finish/Step tempo inputs accept invalid values into app state;
-  for example, Start `29` produces BPM now `29` despite the stated 30 BPM
-  minimum. Add validation/clamping and an announced recovery message.
-- **P2:** production hashed JS and CSS use `cache-control: public,
-  must-revalidate, max-age=30`, not immutable long-lived caching required for
-  this static PWA. Fix the deployment cache policy for hashed assets.
-- **P3:** production lacks CSP, Permissions-Policy, and a frame-embedding
-  response policy.
-
-Full fresh evidence and commands are in `.factory/verification-1.md`.
-
-Date: 2026-08-27
-
-Work order: `rhythm-pedal-tidy-build-1`
-
-Deploy: static `./dist` (`index.html` at root)
-
-## What was built
-
-- A production Vite + vanilla TypeScript PWA with a cassette-era rehearsal
-  zine interface and original generated risograph hero artwork.
-- Standard MIDI type 0/1 parsing for tempo events, running status, note
-  on/off, and sustain CC64 across tracks.
-- A sustain-aware cleanup pass that expands physical releases to pedal-up,
-  trims same-pitch overlaps at the next strike, and preserves starts and
-  velocities.
-- An explainable before/after piano roll with changed-note totals, removed
-  duration, written rationale, and local acceptance tracking.
-- Clean Standard MIDI export with sustain baked into note lengths, individual
-  session JSON export/import, and all-takes JSON backup/restore.
-- A replay synth, sixteenth-note timing score, early/late breakdown, and a
-  start/finish/step tempo ramp that advances after completed playback.
-- Plus live Web MIDI recording, device selection, one-time Sociobot license
-  checkout/restore/verify, cached daily verdicts, and unlimited visible take
-  history. Import, cleanup, accessibility, and data export remain free.
-- IndexedDB persistence, an install manifest, 192/512/maskable icons, a
-  versioned service worker that precaches hashed bundles, network-first
-  navigation, cached assets, offline fallback, and update-ready UI.
-- Responsive 390 px behavior, skip navigation, semantic landmarks, designed
-  focus states, reduced-motion behavior, and `/privacy/` and `/terms/` pages.
+The visual thesis records the focus-ring rationale; it remains the same
+cassette-era rehearsal-zine system.
 
 ## Run and verify
-
-```bash
-npm install
-npm test
-npm run build
-npx playwright install chromium
-npm run test:e2e
-npm run preview
-```
-
-The factory build command is exactly `npm run build`; output is `./dist`.
-
-Verified locally on 2026-08-27:
-
-- `npm test`: 5/5 unit tests pass.
-- `npm run build`: passes; `dist/index.html` exists.
-- `npm run test:e2e`: 6/6 Chromium tests pass at 390 × 844, including an
-  actual `context.setOffline(true)` reload after first PWA installation.
-- Axe browser integration: zero serious or critical violations on the empty
-  app, populated workbench, privacy page, and terms page.
-- Browser console/page-error assertion: clean on load and after opening the
-  example take.
-- Lighthouse desktop run: Performance 100, Accessibility 100, Best Practices
-  100, SEO 92; LCP 1.7 s, TBT 10 ms, CLS 0.
-- Production output: initial JS 28.72 KB raw / 10.91 KB gzip; CSS 15.55 KB raw
-  / 4.15 KB gzip. Mobile hero WebP is 52 KB, desktop AVIF is 76 KB.
-- Manual visual review: 1440 × 1000 desktop and 390 × 844 mobile.
-
-## Privacy and billing notes
-
-There are no analytics, third-party fonts, runtime CDNs, or performance-data
-requests. Takes stay in IndexedDB. The license token and last verification
-verdict are the only localStorage values. Production uses
-`https://api.sociobot.in/api/v1/products/rhythm-pedal-tidy/...`; non-production
-hosts use the pilot API. No product ID or payment-provider embed is present.
-
-## Historical known gaps / next steps
-
-- Live Web MIDI needs a real keyboard/e-kit and browser permission, which were
-  unavailable in the headless container. The permission, device, start/stop,
-  hanging-note, and CC64 code paths are implemented; Safari users get the
-  explicit `.mid` import fallback.
-- SMPTE-timed MIDI is rejected with an actionable error. PPQ type 0/1 files
-  are supported. SysEx and unrelated controller events are safely ignored.
-- Timing scoring uses the file's initial BPM and a sixteenth-note grid; it is
-  intentionally practice feedback, not groove or tempo-map analysis.
-- The factory still needs to register the live/test billing product and switch
-  the deployed environment according to its release process. No live purchase
-  was performed during this build.
-
-## Repair verification — PASS
-
-Date: 2026-08-28
-Work order: `rhythm-pedal-tidy-repair-1`
-Base verifier report: `40b2887737f98dc1a24580ef0f31656e059f1be1` against
-candidate `4c006ebd3d84d612cb7c4f31ea4c3efa51a58b5d`
-Repair commits: `dec71c1` and `12b4b9f`
-Deployment: <https://rhythm-pedal-tidy.sociobot.in> (Azure Static Web Apps,
-production deployment `bc78a497-397f-4ff0-948f-0671e520f76a`)
-
-This section supersedes the historical failure addendum above. All three
-release-blocking findings in `.factory/verification-1.md` are repaired and
-deployed; the original local-first MIDI import, pedal-aware cleanup,
-comparison, replay, export, storage, free core path, paid live-MIDI unlock,
-and cassette-zine visual system are unchanged.
-
-| Verifier finding | Repair | Regression coverage / production evidence |
-| --- | --- | --- |
-| P2: Start/Finish/Step accepted invalid state | `src/tempo.ts` parses finite whole BPM values, clamps Start to 30–240, Finish to Start–300, and Step to 1–30. It restores a blank value and keeps current BPM inside the valid ramp. `#announcer` politely explains recovery. | `tests/tempo.test.ts` covers `29`, blank Step, and Finish below Start. The browser test enters Start `29`, blurs, and asserts Start and **BPM now** are `30` plus the announced message. This also passed on live desktop. |
-| P2: hashed JS/CSS had 30-second revalidation | `public/staticwebapp.config.json` gives `/assets/*` `Cache-Control: public, max-age=31536000, immutable`. | `tests/deployment-config.test.ts` asserts the exact header. Live `HEAD` for `index-C0Kzvh_k.js` and `index-CZIQRJs5.css` returns it. |
-| P3: response hardening missing | The same static configuration supplies restrictive CSP, `Permissions-Policy` (with `midi=(self)` retained), `X-Frame-Options: DENY`, nosniff, and referrer policy. | Configuration regression test and live `HEAD /` confirm CSP with `frame-ancestors 'none'`, Permissions-Policy, and X-Frame-Options. |
-
-The service-worker cache revision is `rpt-v4` and the manifest start URL is
-`/?v=2`, so installed copies discover this repair.
-
-### Run and verify
 
 ```bash
 npm ci
 npm test
 npm run build
-npx playwright test
+npm run test:e2e
 npm run preview
 ```
 
-`npm run build` creates `./dist/index.html`; Vite copies the checked-in static
-deployment configuration into `dist/`.
+`npm run build` writes the static PWA to `./dist` with `index.html` at its
+root. Deploy `dist/` with `/opt/fleet/lib/deploy-static.sh rhythm-pedal-tidy dist`.
 
-### Exact verification evidence
+## Evidence
 
-- Clean `npm ci` completed with **0 vulnerabilities**. Playwright and
-  playwright-core are pinned to the factory-installed `1.58.2` so Axe and
-  Playwright share compatible browser types.
-- `npm test`: **9/9** pass (five MIDI, two tempo-validation, two
-  static-response-policy tests). `npm run build` passes; initial JS is
-  **30.02 kB raw / 11.38 kB gzip**, CSS **15.57 kB raw / 4.15 kB gzip**.
-- `npx playwright test`: **7/7** Chromium tests pass: empty/populated Axe
-  scans have zero serious/critical issues; console/page-error checks, legal
-  pages, keyboard replay, invalid-tempo recovery, and an actual offline reload
-  at **390 × 844** all pass. The offline page retains the take, banner, and
-  MIDI export control.
-- Final live `verify-url.sh` found title, `lang=en`, one h1, main landmark,
-  image alt text, labelled buttons, and no console errors. Axe on live empty
-  and populated desktop states at **1440 × 1000** had zero serious/critical
-  issues. Live mobile at **390 × 844** started replay through the keyboard
-  with no console errors.
-- Installed-app update was tested against production: a browser controlled by
-  live `rpt-v3` stayed open; after deployment and `registration.update()`,
-  `rpt-v4` showed the in-app “A fresh version is ready” toast with no errors.
-- Live response headers contain the CSP, Permissions-Policy,
-  `X-Frame-Options: DENY`, nosniff, and referrer policy; final hashed JS and
-  CSS return `public, max-age=31536000, immutable`.
-- SHA-256 live identity comparisons matched `dist` for `/`, final JS/CSS,
-  service worker, manifest, offline fallback, privacy page, and terms page.
-- A normal live browser flow made requests only to
-  `https://rhythm-pedal-tidy.sociobot.in`. There are no analytics, third-party
-  fonts, or runtime CDNs; takes remain in IndexedDB and license verification
-  stays user-triggered.
-- Lighthouse mobile reached the audit phase but this container's tab crashed
-  in Lighthouse's full-page-screenshot gatherer (`TARGET_CRASHED`); no score
-  is claimed. Build budgets plus browser, Axe, console, responsive, keyboard,
-  offline, update, privacy, identity, and response-policy checks passed.
+- Clean `npm ci`: 96 packages installed; 0 vulnerabilities.
+- `npm test`: 9/9 tests pass (MIDI, tempo, and response-policy configuration).
+- `npm run build`: TypeScript and Vite pass; initial JS is 30,038 B raw /
+  11.39 kB gzip and CSS is 15,658 B raw / 4.18 kB gzip—both inside the
+  static budgets. `dist/index.html` exists.
+- `npm run test:e2e`: 9/9 Chromium tests pass. They include empty/populated
+  Axe scans with zero serious/critical issues, clean console/page-error path,
+  privacy/terms accessibility, 390 px persistence plus an explicit offline
+  reload, keyboard replay, tempo recovery, the focus/Tab regression, and a
+  1440 × 1000 no-horizontal-overflow workbench check.
+- Mobile Lighthouse 12.8.2 against production: Performance 99,
+  Accessibility 100, Best Practices 100, SEO 100; LCP 1.3 s, TBT 100 ms,
+  CLS 0.
+- A controlled local worker replacement then re-registration of `sw.js`
+  displayed **“A fresh version is ready.”**; the same local 390 px context
+  retained its take and Export cleaned MIDI control after
+  `context.setOffline(true)` and reload.
+- The deployed artifact is byte-identical to `dist` by SHA-256 for `/`, the
+  final JS and CSS, `sw.js`, manifest, offline fallback, privacy, and terms.
+  Live `/` has CSP with `frame-ancestors 'none'`, the MIDI-preserving
+  Permissions-Policy, `X-Frame-Options: DENY`, nosniff, and referrer policy;
+  final hashed JS has `Cache-Control: public, max-age=31536000, immutable`.
+- Fresh live Chromium checks at 1440 × 1000 and 390 × 844 found one h1,
+  one main, `lang=en`, no desktop overflow, zero serious/critical Axe issues,
+  and no normal-path console/page errors. The mobile live Tab sequence has no
+  `file-input` stop; normal browsing requested only the product origin. Live
+  offline reload retained the example take, Offline deck notice, and MIDI
+  export control.
 
-### Remaining limitation
+## Privacy and remaining limitation
 
-Live Web MIDI capture still requires physical MIDI hardware and a browser
-permission prompt. The import fallback remains fully tested; no release
-blockers are known.
+No analytics, third-party fonts, runtime CDNs, or performance-data uploads are
+present. Takes stay in IndexedDB; Sociobot license verification remains an
+explicit user action. Real Web MIDI device capture still needs physical MIDI
+hardware and a browser permission prompt; the required `.mid` import fallback
+is covered end to end.
