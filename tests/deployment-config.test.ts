@@ -10,6 +10,7 @@ const config = JSON.parse(readFileSync(resolve(process.cwd(), 'public/staticweba
 };
 const manifest = JSON.parse(readFileSync(resolve(process.cwd(), 'public/manifest.webmanifest'), 'utf8')) as { start_url: string };
 const serviceWorker = readFileSync(resolve(process.cwd(), 'public/sw.js'), 'utf8');
+const appSource = readFileSync(resolve(process.cwd(), 'src/main.ts'), 'utf8');
 
 describe('static deployment response policy', () => {
   it('ships immutable caching for Vite-hashed assets', () => {
@@ -37,5 +38,10 @@ describe('static deployment response policy', () => {
     expect(config.navigationFallback).toBeUndefined();
     expect(config.routes.find((route) => route.route === '/demo')?.rewrite).toBe('/index.html');
     expect(config.responseOverrides['404']).toEqual({ rewrite: '/404.html' });
+  });
+
+  it('uses an existing same-origin file for the online probe', () => {
+    expect(appSource).toContain('fetch(`/robots.txt?online=${Date.now()}`');
+    expect(appSource).not.toContain('/online-check');
   });
 });

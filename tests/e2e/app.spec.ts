@@ -313,12 +313,15 @@ test('has no serious or critical accessibility violations on the landing page an
 
 test('loads the landing page and demo without normal-path browser errors', async ({ page }) => {
   const errors: string[] = [];
+  const requests: string[] = [];
   page.on('console', (message) => { if (message.type() === 'error') errors.push(message.text()); });
   page.on('pageerror', (error) => errors.push(error.message));
+  page.on('request', (request) => requests.push(request.url()));
   await page.goto('/');
   await goDemo(page);
   await expect(page.getByRole('heading', { name: 'Timing score' })).toBeVisible();
   expect(errors).toEqual([]);
+  expect(requests.some((url) => new URL(url).pathname === '/online-check')).toBe(false);
 });
 
 for (const path of ['/privacy/', '/terms/', '/404.html']) {

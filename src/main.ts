@@ -393,7 +393,7 @@ async function init(): Promise<void> {
     } catch { /* the app remains usable without installation support */ }
   }
   try {
-    await fetch(`/online-check?${Date.now()}`, { method: 'HEAD', cache: 'no-store' });
+    await fetch(`/robots.txt?online=${Date.now()}`, { method: 'HEAD', cache: 'no-store' });
   } catch {
     offline = true;
     render();
