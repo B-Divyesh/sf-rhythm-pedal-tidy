@@ -467,7 +467,9 @@ test('a waiting service-worker update offers the in-app refresh control', async 
     // Give filesystems with one-second mtime granularity a distinct update stamp.
     await page.waitForTimeout(1100);
     writeFileSync(workerPath, candidateWorker);
-    await page.evaluate(async () => (await navigator.serviceWorker.getRegistration())?.update());
+    // A distinct script URL bypasses Chromium's service-worker byte cache while
+    // updating the same root-scoped registration.
+    await page.evaluate(async () => { await navigator.serviceWorker.register('/sw.js?test-update=1'); });
     await expect(page.locator('#update-toast')).toBeVisible({ timeout: 15000 });
     await expect(page.getByRole('button', { name: 'Update now' })).toBeVisible();
   } finally {
