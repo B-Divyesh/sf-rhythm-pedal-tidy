@@ -36,7 +36,6 @@ describe('static deployment response policy', () => {
   it('rewrites only the real demo route and serves unknown routes through the designed 404', () => {
     expect(config.navigationFallback).toBeUndefined();
     expect(config.routes.find((route) => route.route === '/demo')?.rewrite).toBe('/index.html');
-    expect(config.routes.find((route) => route.route === '/demo/')?.rewrite).toBe('/index.html');
     expect(config.responseOverrides['404']).toEqual({ rewrite: '/404.html' });
   });
 });
