@@ -109,7 +109,7 @@ test('@claim:demo-isolation Try it with sample data is isolated from real take s
   await page.goto('/');
   await expect(page.getByRole('heading', { level: 1 })).toHaveAccessibleName(/Clean sustain-pedal MIDI overlaps/i);
   await page.locator('.hero').getByRole('link', { name: 'Try it with sample data' }).click();
-  await expect(page).toHaveURL(/\/demo$/);
+  await expect(page).toHaveURL(/\?demo=1$/);
   await expect(page.getByText('Demo — sample data, nothing is saved to your real takes.')).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Warm-up in C' })).toBeVisible();
   expect(await storedTakeNames(page, REAL_DB)).toEqual([]);
@@ -127,6 +127,19 @@ test('@claim:demo-isolation Try it with sample data is isolated from real take s
   expect(await storedTakeNames(page, DEMO_DB)).toEqual([]);
 });
 
+test('one click opens the in-use sample and its first decision inside the 390 by 844 viewport', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/');
+  await page.locator('.hero').getByRole('link', { name: 'Try it with sample data' }).click();
+  await expect(page).toHaveURL(/\?demo=1$/);
+  await expect(page.locator('.hero')).toHaveCount(0);
+  await expect(page.getByRole('link', { name: 'Try it with sample data' })).toHaveCount(0);
+  await expect(page.getByRole('heading', { level: 1, name: 'Warm-up in C' })).toBeInViewport();
+  await expect(page.getByText('3 clean cuts suggested')).toBeInViewport();
+  await expect(page.locator('.diff-stack')).toBeInViewport();
+  await expect(page.getByRole('button', { name: 'Accept cleanup' })).toBeInViewport();
+});
+
 test('@claim:pedal-overlap-repair repairs sample and held-at-end pedal overlaps without moving note starts', async ({ page }) => {
   await goDemo(page);
   await expect(page.getByText('3 clean cuts suggested')).toBeVisible();
@@ -142,7 +155,7 @@ test('@claim:pedal-overlap-repair repairs sample and held-at-end pedal overlaps 
   await expect(page.getByText('1 clean cut suggested')).toBeVisible();
   await expect(page.getByText('0.20s', { exact: true })).toBeVisible();
   const sessionDownload = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Export session' }).click();
+  await page.getByRole('button', { name: 'Export take' }).click();
   const exported = JSON.parse((await downloadBuffer(await sessionDownload)).toString()) as typeof heldAtEnd & { cleanedNotes: Array<{ startMs: number; endMs: number; sustainedEndMs: number; velocity: number }> };
   expect(exported.cleanedNotes.map(({ startMs, endMs, sustainedEndMs, velocity }) => ({ startMs, endMs, sustainedEndMs, velocity }))).toEqual([
     { startMs: 0, endMs: 500, sustainedEndMs: 700, velocity: 90 },
@@ -208,6 +221,31 @@ test('@claim:tempo-ramp increases replay tempo by the chosen step', async ({ pag
   await expect(page.locator('.tempo-readout strong')).toHaveText('245');
 });
 
+test('@claim:tempo-control-ranges enforces every published tempo boundary', async ({ page }) => {
+  await goDemo(page);
+  const enter = async (name: 'Start' | 'Finish' | 'Step', value: string, expected: string, message?: string) => {
+    const control = page.getByRole('spinbutton', { name });
+    await control.fill(value);
+    await control.blur();
+    await expect(control).toHaveValue(expected);
+    if (message) await expect(page.locator('#announcer')).toHaveText(message);
+  };
+
+  await enter('Start', '30', '30');
+  await enter('Start', '29', '30', 'Start must be between 30 and 240 BPM. It was set to 30 BPM.');
+  await enter('Start', '240', '240');
+  await enter('Start', '241', '240', 'Start must be between 30 and 240 BPM. It was set to 240 BPM.');
+  await enter('Start', '30', '30');
+  await enter('Finish', '30', '30');
+  await enter('Finish', '29', '30', 'Finish cannot be below Start. It was set to 30 BPM.');
+  await enter('Finish', '300', '300');
+  await enter('Finish', '301', '300', 'Finish must be between 30 and 300 BPM. It was set to 300 BPM.');
+  await enter('Step', '1', '1');
+  await enter('Step', '0', '1', 'Step must be between 1 and 30 BPM. It was set to 1 BPM.');
+  await enter('Step', '30', '30');
+  await enter('Step', '31', '30', 'Step must be between 1 and 30 BPM. It was set to 30 BPM.');
+});
+
 test('@claim:midi-export exports the cleaned sample as a Standard MIDI file without a paid gate', async ({ page }) => {
   await goDemo(page);
   const download = page.waitForEvent('download');
@@ -217,10 +255,10 @@ test('@claim:midi-export exports the cleaned sample as a Standard MIDI file with
   expect((await downloadBuffer(midi)).subarray(0, 4).toString()).toBe('MThd');
 });
 
-test('@claim:json-data-roundtrip exports and restores a session and all-takes backup', async ({ page }) => {
+test('@claim:json-data-roundtrip exports and restores one take and an all-takes backup', async ({ page }) => {
   await goDemo(page);
   const sessionStarted = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Export session' }).click();
+  await page.getByRole('button', { name: 'Export take' }).click();
   const session = await sessionStarted;
   expect(session.suggestedFilename()).toBe('warm-up-in-c.json');
   const sessionBytes = await downloadBuffer(session);
@@ -285,7 +323,7 @@ test('@claim:local-processing keeps demo cleanup requests on the product origin'
   page.on('request', (request) => requests.push(request.url()));
   await goDemo(page);
   await page.getByRole('button', { name: 'Accept cleanup' }).click();
-  await expect(page.locator('#announcer')).toHaveText('Cleanup accepted. Nice take.');
+  await expect(page.locator('#announcer')).toHaveText('Cleanup accepted and saved with this take.');
   const scripts = await page.locator('script[src]').evaluateAll((items) => items.map((item) => new URL((item as HTMLScriptElement).src).origin));
   expect(scripts.every((origin) => origin === APP_ORIGIN)).toBe(true);
   expect(requests.length).toBeGreaterThan(0);
@@ -354,7 +392,7 @@ test('route metadata, common footer identity, and the designed 404 are complete'
     await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', route.canonical);
     await expect(page.locator('meta[property="og:image"]')).toHaveAttribute('content', /\/assets\/social-card\.jpg$/);
     await expect(page.locator('meta[name="twitter:card"]')).toHaveAttribute('content', 'summary_large_image');
-    await expect(page.getByText('Built by Param Factory · v1.0.2')).toBeVisible();
+    await expect(page.getByText('Built by Param Factory · v1.0.3')).toBeVisible();
   }
   await expect(page.getByRole('heading', { level: 1, name: 'This page is not here.' })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Return to the workspace' })).toBeVisible();
@@ -403,7 +441,7 @@ test('Web MIDI permission denial explains how to recover or import instead', asy
   await page.goto('/');
   await page.getByRole('button', { name: 'Connect live MIDI' }).click();
   await expect(page.locator('#announcer')).toHaveText('MIDI permission was not granted. Allow MIDI in this site’s browser settings, then connect again, or import a .mid file.');
-  await expect(page.getByRole('button', { name: /Import \.mid or session/i })).toBeVisible();
+  await expect(page.getByRole('button', { name: '↑ Import MIDI or take file', exact: true })).toBeVisible();
 });
 
 test('a first service-worker install does not offer a false update', async ({ page }) => {
@@ -469,7 +507,7 @@ test('mobile keyboard import path has no hidden file-picker stop and shows a hig
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/');
   const fileInput = page.locator('#file-input');
-  const importButton = page.getByRole('button', { name: /Import \.mid or session/i });
+  const importButton = page.getByRole('button', { name: '↑ Import MIDI or take file', exact: true });
   await expect(fileInput).toHaveAttribute('tabindex', '-1');
   const tabStops: string[] = [];
   let importButtonReached = false;

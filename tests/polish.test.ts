@@ -11,6 +11,10 @@ const publicFooters = [
   'public/404.html',
   'public/offline.html'
 ].map((path) => readFileSync(resolve(process.cwd(), path), 'utf8')).join('\n');
+const appSource = readFileSync(resolve(process.cwd(), 'src/main.ts'), 'utf8');
+const privacy = readFileSync(resolve(process.cwd(), 'public/privacy/index.html'), 'utf8');
+const claims = readFileSync(resolve(process.cwd(), '.factory/claims.json'), 'utf8');
+const catalogDescription = readFileSync(resolve(process.cwd(), '.factory/catalog-description.txt'), 'utf8').trim();
 
 describe('review-1 copy repairs', () => {
   it('removes the decorative artwork claim from every public footer', () => {
@@ -23,7 +27,7 @@ describe('review-1 copy repairs', () => {
       'Compare the repair, replay it with a tempo ramp, and export clean MIDI.',
       'The demo loads an eight-note practice take in separate sample storage.',
       'Reset demo restores the sample.',
-      'Start for real clears the demo and returns to your real take shelf.',
+      'Start for real clears the demo and returns to your saved takes.',
       'It extends notes held by the sustain pedal, then cuts a repeated note at the next strike.',
       'It never moves note starts.'
     ];
@@ -33,5 +37,35 @@ describe('review-1 copy repairs', () => {
     }
     expect(readme).not.toContain('demo:rhythm-pedal-tidy');
     expect(readme).not.toContain('Expands CC64 sustain');
+  });
+});
+
+describe('review-2 product language and demo repairs', () => {
+  it('uses the canonical take, saved takes, repair, overlap, and sample-data terms', () => {
+    expect(appSource).toContain('Import MIDI or take file');
+    expect(appSource).toContain('Choose a MIDI or take file');
+    expect(appSource).toContain('Saved takes');
+    expect(appSource).toContain('overlap removed');
+    expect(appSource).toContain('Export the cleaned take');
+    expect(appSource).toContain('Cleanup accepted and saved with this take.');
+    expect(readmeText).toContain('returns to your saved takes.');
+    expect(readmeText).toContain('restores one take or all takes from JSON');
+    expect(privacy).toContain('Delete a take from Saved takes.');
+  });
+
+  it('removes every reviewed jargon, metaphor, and unlisted preview sentence', () => {
+    for (const removed of ['SIDE A / READY', 'held open by CC64', 'tangle removed', 'Ready for your DAW', 'Nice take.', 'simple synth preview']) {
+      expect(appSource).not.toContain(removed);
+    }
+  });
+
+  it('uses the isolated query demo entry and inventories the tempo ranges claim', () => {
+    expect(appSource).toContain('href="/?demo=1"');
+    expect(claims).toContain('"id": "tempo-control-ranges"');
+  });
+
+  it('ships a short verb-first catalog description', () => {
+    expect(catalogDescription.length).toBeLessThanOrEqual(120);
+    expect(catalogDescription).toMatch(/^Clean\b/);
   });
 });

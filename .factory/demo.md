@@ -2,16 +2,15 @@
 
 ## Entry point
 
-Open `/demo` or select **Try it with sample data** on the landing page. The
-same route works when installed and after the service worker has cached the
-first visit.
+Open `/?demo=1` or select **Try it with sample data** on the landing page.
+The `/demo` route is a direct alias. Both work after the first cached visit.
 
 ## Sample
 
-The demo seeds **Warm-up in C**: eight notes at 120 BPM, two CC64 pedal
+The demo seeds **Warm-up in C**: eight notes at 120 BPM, two sustain-pedal
 presses, and three repeated-pitch overlaps. It opens directly on the repaired
 workbench. The before/after roll, timing score, replay, acceptance, and
-MIDI/session exports are ready there.
+MIDI/take exports are ready there.
 
 ## Isolation and reset
 

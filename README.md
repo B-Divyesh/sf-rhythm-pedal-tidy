@@ -8,10 +8,10 @@ Live product: <https://rhythm-pedal-tidy.sociobot.in>
 
 ## Try the demo
 
-Open <https://rhythm-pedal-tidy.sociobot.in/demo> or select **Try it with
+Open <https://rhythm-pedal-tidy.sociobot.in/?demo=1> or select **Try it with
 sample data** on the first screen. The demo loads an eight-note practice take
 in separate sample storage. Reset demo restores the sample. Start for real
-clears the demo and returns to your real take shelf. See
+clears the demo and returns to your saved takes. See
 [.factory/demo.md](.factory/demo.md).
 
 ## What it does
@@ -22,7 +22,7 @@ clears the demo and returns to your real take shelf. See
   next strike. It never moves note starts.
 - Scores note starts against a sixteenth-note grid and offers a replay tempo
   ramp
-- Exports cleaned MIDI and restores session or all-takes JSON files
+- Exports cleaned MIDI and restores one take or all takes from JSON
 - Saves take history and cleanup choices on this device
 - Reloads the cached demo offline, where replay and MIDI export remain usable
 

@@ -25,7 +25,7 @@ export interface TakeStorage {
 
 /**
  * Real and demo takes deliberately use different IndexedDB database names.
- * The demo never reads or writes a musician's real take shelf.
+ * The demo never reads or writes a musician's real saved-takes collection.
  */
 export function createTakeStorage(scope: StorageScope): TakeStorage {
   const dbName = scope === 'demo' ? DEMO_DB_NAME : REAL_DB_NAME;

@@ -15,6 +15,7 @@ const publicPromiseIds = [
   'live-midi-input',
   'timing-score',
   'tempo-ramp',
+  'tempo-control-ranges',
   'midi-export',
   'json-data-roundtrip',
   'saved-take-history',

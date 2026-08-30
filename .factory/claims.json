@@ -1,17 +1,17 @@
 [
   {
     "id": "demo-isolation",
-    "claim": "Try it with sample data loads eight notes in a separate demo and never saves them to the real take shelf.",
+    "claim": "Try it with sample data loads eight notes in a separate demo and never saves them to the real saved-takes collection.",
     "where": "Landing action, demo banner, README, privacy page",
     "test": "npm run test:e2e -- --grep @claim:demo-isolation",
     "sandbox": "Fresh browser context; enter from the landing page, inspect both IndexedDB namespaces, reset, and start for real."
   },
   {
     "id": "pedal-overlap-repair",
-    "claim": "Cleanup extends CC64-held notes and cuts a repeated pitch at the next strike without moving its start or velocity, including when the take ends with the pedal down.",
+    "claim": "Cleanup extends sustain-pedal-held notes and cuts a repeated pitch at the next strike without moving its start or velocity, including when the take ends with the pedal down.",
     "where": "Landing headline, workspace repair explanation, README",
     "test": "npm run test:e2e -- --grep @claim:pedal-overlap-repair",
-    "sandbox": "Fresh demo followed by the verifier's two-C4 held-pedal session; assert visible cuts and exact exported cleaned note boundaries, starts, and velocities."
+    "sandbox": "Fresh demo followed by the verifier's two-C4 held-pedal take; assert visible cuts and exact exported cleaned note boundaries, starts, and velocities."
   },
   {
     "id": "standard-midi-import",
@@ -22,10 +22,10 @@
   },
   {
     "id": "live-midi-input",
-    "claim": "Records notes and CC64 from a compatible Web MIDI input when the browser supports it and permission is granted.",
+    "claim": "Records notes and sustain-pedal messages from a compatible Web MIDI input when the browser supports it and permission is granted.",
     "where": "Input controls, device section, privacy page, README",
     "test": "npm run test:e2e -- --grep @claim:live-midi-input",
-    "sandbox": "Fresh browser context with a deterministic Web MIDI input fixture; connect, select, record note and CC64 messages, and assert the captured take."
+    "sandbox": "Fresh browser context with a deterministic Web MIDI input fixture; connect, select, record note and sustain-pedal messages, and assert the captured take."
   },
   {
     "id": "timing-score",
@@ -42,6 +42,13 @@
     "sandbox": "Fresh demo; set Start 240, Finish 245, and Step 5, complete one replay, and assert the next BPM is 245."
   },
   {
+    "id": "tempo-control-ranges",
+    "claim": "Tempo controls accept Start from 30 to 240 BPM, Finish from Start to 300 BPM, and Step from 1 to 30 BPM.",
+    "where": "Tempo control guidance",
+    "test": "npm run test:e2e -- --grep @claim:tempo-control-ranges",
+    "sandbox": "Fresh demo; enter each lower and upper boundary and one value beyond each boundary, then assert the corrected control value and message."
+  },
+  {
     "id": "midi-export",
     "claim": "Exports the cleaned take as a free Standard MIDI file.",
     "where": "Landing facts, export control, README",
@@ -50,15 +57,15 @@
   },
   {
     "id": "json-data-roundtrip",
-    "claim": "Exports and restores one session or the complete take shelf as JSON.",
-    "where": "Session export, take shelf backup controls, README",
+    "claim": "Exports and restores one take or the complete saved-takes collection as JSON.",
+    "where": "Take export, saved-takes backup controls, README",
     "test": "npm run test:e2e -- --grep @claim:json-data-roundtrip",
-    "sandbox": "Fresh demo; download session and all-takes JSON, enter the empty real workspace, then restore both and assert the take."
+    "sandbox": "Fresh demo; download one-take and all-takes JSON, enter the empty real workspace, then restore both and assert the take."
   },
   {
     "id": "saved-take-history",
     "claim": "Saves take history and cleanup acceptance on this device through refresh, with deletion available.",
-    "where": "Take shelf, cleanup acceptance, device section, privacy page, README",
+    "where": "Saved takes, cleanup acceptance, device section, privacy page, README",
     "test": "npm run test:e2e -- --grep @claim:saved-take-history",
     "sandbox": "Fresh real workspace; import and accept a take, reload, assert both states, then confirm deletion and inspect IndexedDB."
   },

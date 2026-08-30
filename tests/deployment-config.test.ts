@@ -27,11 +27,12 @@ describe('static deployment response policy', () => {
   });
 
   it('ships a new service-worker cache version and install URL for this release', () => {
-    expect(serviceWorker).toContain("const VERSION = 'rpt-v8';");
+    expect(serviceWorker).toContain("const VERSION = 'rpt-v9';");
     expect(serviceWorker).toContain("'/demo'");
-    expect(serviceWorker).toContain("'/?v=8'");
+    expect(serviceWorker).toContain("'/?demo=1'");
+    expect(serviceWorker).toContain("'/?v=9'");
     expect(serviceWorker).toContain("'/404.html'");
-    expect(manifest.start_url).toBe('/?v=8');
+    expect(manifest.start_url).toBe('/?v=9');
   });
 
   it('rewrites only the real demo route and serves unknown routes through the designed 404', () => {

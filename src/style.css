@@ -91,8 +91,11 @@ h3 { font-size: clamp(1.35rem, 2vw, 2rem); }
 .tape-number { display: inline-block; padding: 4px 7px; background: var(--mustard); color: var(--ink); font-size: 12px; font-weight: bold; letter-spacing: .08em; }
 .fineprint, .explanation, .muted { color: var(--muted); font-size: 14px !important; }
 .workbench { max-width: 1280px; margin: 0 auto; padding: 64px 24px 80px; }
+.demo-loading { min-height: 50vh; padding: 48px max(24px, calc((100vw - 1280px) / 2)); }
+.demo-loading h1 { font-size: clamp(2.4rem, 7vw, 5rem); }
 .take-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; margin-bottom: 28px; }
 .take-heading h2 { margin-top: 8px; }
+.take-heading h1 { margin-top: 8px; font-size: clamp(2.4rem, 6vw, 5rem); }
 .stats-strip { display: grid; grid-template-columns: repeat(4, 1fr); border: 3px solid var(--ink); background: var(--tape); box-shadow: 7px 7px 0 var(--ink); }
 .stats-strip div { min-height: 96px; display: flex; flex-direction: column; justify-content: center; padding: 14px 20px; border-right: 2px solid var(--ink); }
 .stats-strip div:last-child { border: 0; }
@@ -175,6 +178,13 @@ footer p { max-width: 320px; text-align: right; }
 .update-toast[hidden] { display: none; }
 .update-toast button { min-height: 44px; color: var(--ink); background: var(--mustard); border: 0; cursor: pointer; font-weight: bold; }
 
+/* The demo opens as an in-use workbench, with the result and first decision above the fold. */
+.demo-route .workbench { padding-top: 28px; }
+.demo-route .take-heading { margin-bottom: 18px; }
+.demo-route .diff-heading { margin-top: 28px; }
+.demo-route .roll { height: 92px; }
+.demo-route .diff-stack { padding: 14px; }
+
 /* Keep the complete first action and its three facts above a 720px fold. */
 @media (min-width: 851px) and (max-height: 800px) {
   .hero { min-height: calc(100svh - 68px); }
@@ -235,6 +245,35 @@ footer p { max-width: 320px; text-align: right; }
   .price-sticker { width: 132px; height: 132px; }
   footer { grid-template-columns: 1fr; }
   footer p { grid-column: auto; }
+
+  .demo-route .demo-banner { min-height: 64px; align-items: center; flex-direction: row; gap: 8px; padding: 6px 12px; font-size: 12px; line-height: 1.25; }
+  .demo-route .demo-banner > strong { max-width: 145px; }
+  .demo-route .demo-banner > div { gap: 4px; }
+  .demo-route .demo-banner .compact, .demo-route .demo-banner .text-button { padding: 6px; font-size: 12px; }
+  .demo-route .workbench { padding: 12px 12px 40px; }
+  .demo-route .take-heading { align-items: center; flex-direction: row; gap: 8px; margin-bottom: 8px; }
+  .demo-route .take-heading h1 { margin-top: 3px; font-size: 2rem; }
+  .demo-route .take-heading .tape-number { padding: 2px 5px; font-size: 10px; }
+  .demo-route .take-heading .text-button { flex: 0 0 auto; padding: 4px; font-size: 12px; }
+  .demo-route .stats-strip { grid-template-columns: repeat(4, 1fr); box-shadow: 4px 4px 0 var(--ink); }
+  .demo-route .stats-strip div { min-height: 62px; padding: 5px; border-right: 1px solid var(--ink); border-bottom: 0; }
+  .demo-route .stats-strip div:nth-child(2) { border-right: 1px solid var(--ink); }
+  .demo-route .stats-strip strong { font-size: 19px; }
+  .demo-route .stats-strip span { font-size: 9px; line-height: 1.15; }
+  .demo-route .diff-heading { align-items: flex-end; flex-direction: row; gap: 6px; margin-top: 12px; }
+  .demo-route .diff-heading .eyebrow { margin-bottom: 2px; font-size: 10px; }
+  .demo-route .diff-heading h2 { font-size: 1.25rem; }
+  .demo-route .legend { max-width: 140px; gap: 3px 8px; font-size: 9px; }
+  .demo-route .key::before { width: 12px; height: 7px; }
+  .demo-route .diff-stack { margin-top: 7px; padding: 7px; }
+  .demo-route .roll-row { grid-template-columns: 42px 1fr; gap: 5px; font-size: 10px; }
+  .demo-route .roll-row + .roll-row { margin-top: 5px; }
+  .demo-route .roll { height: 52px; }
+  .demo-route .explanation { margin: 7px 0; font-size: 11px !important; line-height: 1.25; }
+  .demo-route .approval-bar { min-height: 54px; align-items: center; flex-direction: row; gap: 8px; padding: 6px 8px; }
+  .demo-route .approval-bar > div { font-size: 12px; line-height: 1.2; }
+  .demo-route .approval-bar span { display: none; }
+  .demo-route .approval-bar button { width: auto; min-height: 44px; padding: 6px 9px; font-size: 12px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
