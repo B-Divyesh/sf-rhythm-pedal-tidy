@@ -285,6 +285,7 @@ test('@claim:saved-take-history keeps cleanup acceptance through refresh and sup
   await page.goto('/');
   await page.locator('#file-input').setInputFiles({ name: 'saved.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(sessionFixture('Saved rehearsal'))) });
   await page.getByRole('button', { name: 'Accept cleanup' }).click();
+  await expect(page.getByRole('button', { name: 'Accepted ✓' })).toBeVisible();
   await page.reload();
   await expect(page.getByRole('heading', { name: 'Saved rehearsal' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Accepted ✓' })).toBeVisible();
@@ -463,6 +464,8 @@ test('a waiting service-worker update offers the in-app refresh control', async 
     // Reload under the old controller so the app records that an update is real.
     await page.reload();
     await page.waitForFunction(() => Boolean(navigator.serviceWorker.controller));
+    // Give filesystems with one-second mtime granularity a distinct update stamp.
+    await page.waitForTimeout(1100);
     writeFileSync(workerPath, candidateWorker);
     await page.evaluate(async () => (await navigator.serviceWorker.getRegistration())?.update());
     await expect(page.locator('#update-toast')).toBeVisible({ timeout: 15000 });
