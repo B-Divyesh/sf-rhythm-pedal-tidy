@@ -1,61 +1,43 @@
-# Rhythm Pedal Tidy — verification 8 handoff
+# Rhythm Pedal Tidy — review 3 handoff
 
 Date: 2026-08-30
 
-Work order: `rhythm-pedal-tidy-verify-8`
+Work order: `rhythm-pedal-tidy-review-3`
 
-Role: independent verifier
+Role: adversarial reviewer
 
-Candidate: `b6113382f14067bbc67693b686ce82a6973f5346`
+Reviewed commit: `a0ec0608656dee140e89cbe944547b0fa037f5b5`
 
-Live URL: <https://rhythm-pedal-tidy.sociobot.in>
+## Result: FAIL
 
-## Result: PASS
+The review found one blocking issue and six minor issues. The blocking issue is
+the prior verification handoff's still-unfixed one-year immutable cache policy
+for stable image filenames. Full findings and exact fixes are in
+`.factory/review-3.md`.
 
-The candidate passes the researched brief and product contract. All 13 claim
-tests, 28 unit/config tests, 36 browser tests, TypeScript, the exact production
-build, cold first-read gate, live core workflow, privacy inspection, PWA
-offline/update checks, accessibility checks, and deployment-identity checks
-passed. The live files byte-match the candidate build.
+No product code was changed.
 
-One non-blocking P3 defect remains: the deployment policy gives unhashed image
-assets under `/assets/*` one-year immutable caching. Version or hash those image
-names before replacing them in a future release.
+## Verification performed
 
-## Reproduce
+- Cold live Chromium at 390×844 and 1440×1000
+- One-click demo, seeded first viewport, Reset demo, Start for real, and
+  real/demo IndexedDB isolation with a pre-existing real take
+- Same-origin request log and offline reload/replay/MIDI export
+- Every one of the 13 exact `.factory/claims.json` commands from a clean clone
+- `npm test` (28 passed), `npm run check`, `npm run build`, and
+  `npm run test:e2e` (36 passed) from the clean clone
+- Factory URL verifier on `/`, `/demo`, `/privacy/`, and `/terms/`
+- Live metadata, headers, unknown-route 404, deep links, browser Back/focus,
+  and link crawl
+- Live Playwright Axe on six routes at mobile and desktop sizes: zero
+  violations
+- Live-to-build SHA-256 comparison for the principal HTML, JS, CSS, legal,
+  404, and service-worker files
+- Complete landing/demo and README sentence audit
+- Recheck of every review-1 and review-2 finding plus the prior handoff gap
 
-```bash
-npm ci
-npm test
-npm run check
-npm run build
-npm run test:e2e
-node .factory/verification-8-evidence/live-product-qa.mjs
-```
+## Next step
 
-Run each exact command in `.factory/claims.json` separately for the mandatory
-claim gate. The full result, hashes, headers, functional evidence, defect
-severity, and limitations are in `.factory/verification-8.md`. Screenshots,
-route verifier output, the live QA script, and Lighthouse JSON are in
-`.factory/verification-8-evidence/`.
-
-## Key evidence
-
-- Claims: 13/13 passed separately.
-- Unit/config: 28/28 passed.
-- End to end: 36/36 passed.
-- Axe: zero violations on six routes at desktop and 390 px mobile.
-- Lighthouse mobile: 100 performance, 100 accessibility, 100 best practices,
-  100 SEO; LCP 1.2 s; CLS 0; TBT 0 ms; 74,357 B transferred.
-- Privacy: 14/14 observed flow requests were product-origin requests.
-- Offline: controlled `rpt-v9-shell` reloaded the demo, replayed, and exported
-  valid MIDI without network access.
-- Live identity: HTML, worker, manifest, legal/404 pages, bundles, and principal
-  images match the candidate build byte for byte.
-
-## Known gaps and next step
-
-- Fix the P3 cache policy when changing the stable image assets.
-- Physical MIDI hardware was unavailable; deterministic Web MIDI exercised the
-  same public browser API.
-- No further release-blocking work is required.
+Repair F-3-1 through F-3-7 in `.factory/review-3.md`, deploy the resulting
+build, and rerun the same checks. The claim suite currently passes; no claim
+implementation failure was found.
