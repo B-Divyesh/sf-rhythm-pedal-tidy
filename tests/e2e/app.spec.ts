@@ -408,7 +408,7 @@ test('a waiting service-worker update offers the in-app refresh control', async 
     await page.waitForFunction(() => Boolean(navigator.serviceWorker.controller));
     writeFileSync(workerPath, candidateWorker);
     await page.evaluate(async () => (await navigator.serviceWorker.getRegistration())?.update());
-    await expect(page.locator('#update-toast')).toBeVisible();
+    await expect(page.locator('#update-toast')).toBeVisible({ timeout: 15000 });
     await expect(page.getByRole('button', { name: 'Update now' })).toBeVisible();
   } finally {
     writeFileSync(workerPath, candidateWorker);

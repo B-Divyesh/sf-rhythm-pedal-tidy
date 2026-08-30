@@ -380,10 +380,14 @@ async function init(): Promise<void> {
     try {
       const hadController = Boolean(navigator.serviceWorker.controller);
       const registration = await navigator.serviceWorker.register('/sw.js');
+      const offerUpdate = () => {
+        if (hadController) document.querySelector<HTMLElement>('#update-toast')?.removeAttribute('hidden');
+      };
+      navigator.serviceWorker.addEventListener('controllerchange', offerUpdate, { once: true });
       registration.addEventListener('updatefound', () => {
         const worker = registration.installing;
         worker?.addEventListener('statechange', () => {
-          if (worker.state === 'installed' && hadController) document.querySelector<HTMLElement>('#update-toast')!.hidden = false;
+          if (worker.state === 'installed') offerUpdate();
         });
       });
     } catch { /* the app remains usable without installation support */ }
