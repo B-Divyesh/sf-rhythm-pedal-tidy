@@ -40,6 +40,48 @@ function highTempoMidi(): Buffer {
   ]);
 }
 
+function typeZeroMidi(): Buffer {
+  return Buffer.from([
+    0x4d, 0x54, 0x68, 0x64, 0, 0, 0, 6, 0, 0, 0, 1, 1, 0xe0,
+    0x4d, 0x54, 0x72, 0x6b, 0, 0, 0, 13,
+    0, 0x90, 60, 100,
+    0x83, 0x60, 0x80, 60, 0,
+    0, 0xff, 0x2f, 0
+  ]);
+}
+
+function typeOneMidi(): Buffer {
+  return Buffer.from([
+    0x4d, 0x54, 0x68, 0x64, 0, 0, 0, 6, 0, 1, 0, 2, 1, 0xe0,
+    0x4d, 0x54, 0x72, 0x6b, 0, 0, 0, 11,
+    0, 0xff, 0x51, 3, 7, 0xa1, 0x20,
+    0, 0xff, 0x2f, 0,
+    0x4d, 0x54, 0x72, 0x6b, 0, 0, 0, 13,
+    0, 0x90, 64, 96,
+    0x83, 0x60, 0x80, 64, 0,
+    0, 0xff, 0x2f, 0
+  ]);
+}
+
+function sessionFixture(name: string, notes = [{ id: 'note-1', pitch: 60, channel: 0, velocity: 90, startMs: 0, endMs: 80 }], pedals: Array<{ timeMs: number; down: boolean; channel: number }> = []) {
+  return {
+    id: name.toLowerCase().replace(/\s+/g, '-'),
+    name,
+    createdAt: '2026-08-30T00:00:00.000Z',
+    source: 'json',
+    bpm: 120,
+    notes,
+    pedals
+  };
+}
+
+async function downloadBuffer(download: import('@playwright/test').Download): Promise<Buffer> {
+  const stream = await download.createReadStream();
+  const chunks: Buffer[] = [];
+  for await (const chunk of stream!) chunks.push(Buffer.from(chunk));
+  return Buffer.concat(chunks);
+}
+
 async function storedTakeNames(page: import('@playwright/test').Page, databaseName = DEMO_DB): Promise<string[]> {
   return page.evaluate(async (dbName) => {
     const database = await new Promise<IDBDatabase>((resolve, reject) => {
@@ -85,12 +127,85 @@ test('@claim:demo-isolation Try it with sample data is isolated from real take s
   expect(await storedTakeNames(page, DEMO_DB)).toEqual([]);
 });
 
-test('@claim:pedal-overlap-repair shows a pedal-aware before and after repair', async ({ page }) => {
+test('@claim:pedal-overlap-repair repairs sample and held-at-end pedal overlaps without moving note starts', async ({ page }) => {
   await goDemo(page);
   await expect(page.getByText('3 clean cuts suggested')).toBeVisible();
   await expect(page.getByText('2.74s', { exact: true })).toBeVisible();
   await expect(page.locator('.roll-row')).toHaveCount(2);
   await expect(page.getByText(/Repeated pitches are then cut at the next strike/i)).toBeVisible();
+
+  const heldAtEnd = sessionFixture('Held pedal ending', [
+    { id: 'first-c4', pitch: 60, channel: 0, velocity: 90, startMs: 0, endMs: 200 },
+    { id: 'second-c4', pitch: 60, channel: 0, velocity: 91, startMs: 500, endMs: 700 }
+  ], [{ timeMs: 50, down: true, channel: 0 }]);
+  await page.locator('#file-input').setInputFiles({ name: 'held-pedal.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(heldAtEnd)) });
+  await expect(page.getByText('1 clean cut suggested')).toBeVisible();
+  await expect(page.getByText('0.20s', { exact: true })).toBeVisible();
+  const sessionDownload = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Export session' }).click();
+  const exported = JSON.parse((await downloadBuffer(await sessionDownload)).toString()) as typeof heldAtEnd & { cleanedNotes: Array<{ startMs: number; endMs: number; sustainedEndMs: number; velocity: number }> };
+  expect(exported.cleanedNotes.map(({ startMs, endMs, sustainedEndMs, velocity }) => ({ startMs, endMs, sustainedEndMs, velocity }))).toEqual([
+    { startMs: 0, endMs: 500, sustainedEndMs: 700, velocity: 90 },
+    { startMs: 500, endMs: 700, sustainedEndMs: 700, velocity: 91 }
+  ]);
+});
+
+test('@claim:standard-midi-import imports Standard MIDI type 0 and type 1 files', async ({ page }) => {
+  await page.goto('/');
+  await page.locator('#file-input').setInputFiles({ name: 'type-zero.mid', mimeType: 'audio/midi', buffer: typeZeroMidi() });
+  await expect(page.getByRole('heading', { name: 'type-zero' })).toBeVisible();
+  await expect(page.locator('.stats-strip')).toContainText('1notes');
+  await page.locator('#file-input').setInputFiles({ name: 'type-one.mid', mimeType: 'audio/midi', buffer: typeOneMidi() });
+  await expect(page.getByRole('heading', { name: 'type-one' })).toBeVisible();
+  await expect(page.locator('.stats-strip')).toContainText('1notes');
+});
+
+test('@claim:live-midi-input records notes and CC64 from a compatible Web MIDI input', async ({ page }) => {
+  await page.addInitScript(() => {
+    const input = { id: 'test-midi-input', name: 'Test MIDI Keyboard', onmidimessage: null as ((event: { data: Uint8Array }) => void) | null };
+    Object.defineProperty(window, '__testMidiInput', { value: input });
+    Object.defineProperty(navigator, 'requestMIDIAccess', {
+      configurable: true,
+      value: async () => ({ inputs: new Map([[input.id, input]]) })
+    });
+  });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Connect live MIDI' }).click();
+  await expect(page.locator('#announcer')).toHaveText('1 MIDI input found.');
+  await page.getByRole('combobox', { name: 'Input' }).selectOption('test-midi-input');
+  await page.getByRole('button', { name: 'Record take' }).click();
+  await page.evaluate(() => {
+    const input = (window as unknown as { __testMidiInput: { onmidimessage: (event: { data: Uint8Array }) => void } }).__testMidiInput;
+    input.onmidimessage({ data: new Uint8Array([0x90, 60, 100]) });
+    input.onmidimessage({ data: new Uint8Array([0xb0, 64, 127]) });
+  });
+  await page.waitForTimeout(30);
+  await page.evaluate(() => {
+    const input = (window as unknown as { __testMidiInput: { onmidimessage: (event: { data: Uint8Array }) => void } }).__testMidiInput;
+    input.onmidimessage({ data: new Uint8Array([0x80, 60, 0]) });
+  });
+  await page.getByRole('button', { name: 'Stop take' }).click();
+  await expect(page.locator('#announcer')).toHaveText('Live take captured and cleaned.');
+  await expect(page.locator('.stats-strip')).toContainText('1notes');
+  await expect(page.locator('.stats-strip')).toContainText('1pedal presses');
+});
+
+test('@claim:timing-score scores note starts against the sixteenth-note grid', async ({ page }) => {
+  await goDemo(page);
+  await expect(page.locator('.score-lockup > strong')).toHaveText('92');
+  await expect(page.locator('.score-lockup')).toContainText('Mean offset 9 ms');
+  await expect(page.locator('.score-breakdown')).toContainText('On grid 8');
+});
+
+test('@claim:tempo-ramp increases replay tempo by the chosen step', async ({ page }) => {
+  await goDemo(page);
+  await page.getByRole('spinbutton', { name: 'Start' }).fill('240');
+  await page.getByRole('spinbutton', { name: 'Start' }).blur();
+  await page.getByRole('spinbutton', { name: 'Finish' }).fill('245');
+  await page.getByRole('spinbutton', { name: 'Finish' }).blur();
+  await page.getByRole('button', { name: 'Replay clean take' }).click();
+  await expect(page.locator('#announcer')).toHaveText('Replay complete. You reached 245 BPM.', { timeout: 5000 });
+  await expect(page.locator('.tempo-readout strong')).toHaveText('245');
 });
 
 test('@claim:midi-export exports the cleaned sample as a Standard MIDI file without a paid gate', async ({ page }) => {
@@ -99,10 +214,47 @@ test('@claim:midi-export exports the cleaned sample as a Standard MIDI file with
   await page.getByRole('button', { name: 'Export cleaned MIDI' }).click();
   const midi = await download;
   expect(midi.suggestedFilename()).toBe('warm-up-in-c-tidy.mid');
-  const stream = await midi.createReadStream();
-  const chunks: Buffer[] = [];
-  for await (const chunk of stream!) chunks.push(Buffer.from(chunk));
-  expect(Buffer.concat(chunks).subarray(0, 4).toString()).toBe('MThd');
+  expect((await downloadBuffer(midi)).subarray(0, 4).toString()).toBe('MThd');
+});
+
+test('@claim:json-data-roundtrip exports and restores a session and all-takes backup', async ({ page }) => {
+  await goDemo(page);
+  const sessionStarted = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Export session' }).click();
+  const session = await sessionStarted;
+  expect(session.suggestedFilename()).toBe('warm-up-in-c.json');
+  const sessionBytes = await downloadBuffer(session);
+  expect(JSON.parse(sessionBytes.toString()).name).toBe('Warm-up in C');
+
+  const backupStarted = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Export all data' }).click();
+  const backup = await backupStarted;
+  expect(backup.suggestedFilename()).toBe('rhythm-pedal-tidy-backup.json');
+  const backupBytes = await downloadBuffer(backup);
+  expect(JSON.parse(backupBytes.toString()).takes).toHaveLength(1);
+
+  await page.getByRole('button', { name: 'Start for real' }).click();
+  await expect(page).toHaveURL(`${APP_ORIGIN}/`);
+  await expect(page.getByRole('heading', { name: 'Bring in a pedal take' })).toBeVisible();
+  await page.locator('#file-input').setInputFiles({ name: 'session.json', mimeType: 'application/json', buffer: sessionBytes });
+  await expect(page.getByRole('heading', { name: 'Warm-up in C' })).toBeVisible();
+  page.once('dialog', (dialog) => dialog.accept());
+  await page.locator('#file-input').setInputFiles({ name: 'backup.json', mimeType: 'application/json', buffer: backupBytes });
+  await expect(page.locator('#announcer')).toHaveText('Restored 1 take.');
+});
+
+test('@claim:saved-take-history keeps cleanup acceptance through refresh and supports deletion', async ({ page }) => {
+  await page.goto('/');
+  await page.locator('#file-input').setInputFiles({ name: 'saved.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(sessionFixture('Saved rehearsal'))) });
+  await page.getByRole('button', { name: 'Accept cleanup' }).click();
+  await page.reload();
+  await expect(page.getByRole('heading', { name: 'Saved rehearsal' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Accepted ✓' })).toBeVisible();
+  expect(await storedTakeNames(page, REAL_DB)).toEqual(['Saved rehearsal']);
+  page.once('dialog', (dialog) => dialog.accept());
+  await page.getByRole('button', { name: 'Remove take' }).click();
+  await expect(page.getByRole('heading', { name: 'Bring in a pedal take' })).toBeVisible();
+  expect(await storedTakeNames(page, REAL_DB)).toEqual([]);
 });
 
 test('@claim:offline-reload retains the demo after the first service-worker-controlled visit', async ({ browser }) => {
@@ -115,9 +267,14 @@ test('@claim:offline-reload retains the demo after the first service-worker-cont
     await page.waitForFunction(() => Boolean(navigator.serviceWorker.controller));
     await context.setOffline(true);
     await page.reload();
-    await expect(page.getByText(/Offline deck/i)).toBeVisible();
+    await expect(page.getByText(/^Offline:/i)).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Warm-up in C' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Export cleaned MIDI' })).toBeVisible();
+    const download = page.waitForEvent('download');
+    await page.getByRole('button', { name: 'Export cleaned MIDI' }).click();
+    expect((await downloadBuffer(await download)).subarray(0, 4).toString()).toBe('MThd');
+    await page.getByRole('button', { name: 'Replay clean take' }).click();
+    await expect(page.getByRole('button', { name: 'Stop replay' })).toBeVisible();
+    await page.getByRole('button', { name: 'Stop replay' }).click();
   } finally {
     await context.close();
   }
@@ -129,6 +286,8 @@ test('@claim:local-processing keeps demo cleanup requests on the product origin'
   await goDemo(page);
   await page.getByRole('button', { name: 'Accept cleanup' }).click();
   await expect(page.locator('#announcer')).toHaveText('Cleanup accepted. Nice take.');
+  const scripts = await page.locator('script[src]').evaluateAll((items) => items.map((item) => new URL((item as HTMLScriptElement).src).origin));
+  expect(scripts.every((origin) => origin === APP_ORIGIN)).toBe(true);
   expect(requests.length).toBeGreaterThan(0);
   expect(requests.every((url) => new URL(url).origin === APP_ORIGIN)).toBe(true);
 });
@@ -138,6 +297,7 @@ test('@claim:no-checkout removes the unavailable paid route and leaves device co
   await expect(page.getByText('No checkout in this build')).toBeVisible();
   await expect(page.getByRole('link', { name: /checkout|buy|plus/i })).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Connect live MIDI' })).toBeEnabled();
+  await expect(page.getByText(/No account, payment, analytics, or performance-data upload/i)).toBeVisible();
   const billingLinks = await page.locator('a').evaluateAll((links) => links.map((link) => link.getAttribute('href') ?? '').filter((href) => href.includes('sociobot.in/api/v1/products')));
   expect(billingLinks).toEqual([]);
 });
@@ -161,18 +321,71 @@ test('loads the landing page and demo without normal-path browser errors', async
   expect(errors).toEqual([]);
 });
 
-for (const path of ['/privacy/', '/terms/']) {
+for (const path of ['/privacy/', '/terms/', '/404.html']) {
   test(`${path} has a main landmark, one heading, and no serious accessibility violations`, async ({ page }) => {
     await page.goto(path);
     await expect(page.locator('main')).toBeVisible();
     await expect(page.getByRole('heading', { level: 1 })).toHaveCount(1);
-    await page.locator('header a').focus();
-    await expect(page.locator('header a')).toBeFocused();
-    expect(await page.locator('header a').evaluate((element) => getComputedStyle(element).outlineColor)).toBe('rgb(255, 250, 240)');
+    const home = page.locator('header a').first();
+    await home.focus();
+    await expect(home).toBeFocused();
+    expect(await home.evaluate((element) => getComputedStyle(element).outlineColor)).toBe('rgb(255, 250, 240)');
     const results = await new AxeBuilder({ page }).analyze();
     expect(results.violations.filter((violation) => ['serious', 'critical'].includes(violation.impact ?? ''))).toEqual([]);
   });
 }
+
+test('route metadata, common footer identity, and the designed 404 are complete', async ({ page }) => {
+  const routes = [
+    { path: '/', title: 'Rhythm Pedal Tidy — clean sustain-pedal MIDI', canonical: 'https://rhythm-pedal-tidy.sociobot.in/' },
+    { path: '/demo', title: 'Demo — Rhythm Pedal Tidy', canonical: 'https://rhythm-pedal-tidy.sociobot.in/demo' },
+    { path: '/privacy/', title: 'Privacy — Rhythm Pedal Tidy', canonical: 'https://rhythm-pedal-tidy.sociobot.in/privacy/' },
+    { path: '/terms/', title: 'Terms — Rhythm Pedal Tidy', canonical: 'https://rhythm-pedal-tidy.sociobot.in/terms/' },
+    { path: '/404.html', title: 'Page not found — Rhythm Pedal Tidy', canonical: 'https://rhythm-pedal-tidy.sociobot.in/404.html' }
+  ];
+  for (const route of routes) {
+    await page.goto(route.path);
+    await expect(page).toHaveTitle(route.title);
+    await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', route.canonical);
+    await expect(page.locator('meta[property="og:image"]')).toHaveAttribute('content', /\/assets\/social-card\.jpg$/);
+    await expect(page.locator('meta[name="twitter:card"]')).toHaveAttribute('content', 'summary_large_image');
+    await expect(page.getByText('Built by Param Factory · v1.0.1')).toBeVisible();
+  }
+  await expect(page.getByRole('heading', { level: 1, name: 'This page is not here.' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Return to the workspace' })).toBeVisible();
+});
+
+test('the complete sample action and facts fit at 1280 by 720 and desktop nav targets are 44 pixels', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.goto('/');
+  const bounds = await page.locator('.hero-copy').evaluate((container) => {
+    const rect = (selector: string) => {
+      const box = container.querySelector(selector)!.getBoundingClientRect();
+      return { top: box.top, bottom: box.bottom, width: box.width, height: box.height };
+    };
+    return { action: rect('.primary'), explainer: rect('.action-explainer'), facts: rect('.hero-facts') };
+  });
+  expect(bounds.action.top).toBeGreaterThanOrEqual(0);
+  expect(bounds.action.bottom).toBeLessThanOrEqual(720);
+  expect(bounds.explainer.bottom).toBeLessThanOrEqual(720);
+  expect(bounds.facts.bottom).toBeLessThanOrEqual(720);
+  for (const link of await page.locator('.site-header nav a').all()) {
+    const box = await link.boundingBox();
+    expect(box?.width).toBeGreaterThanOrEqual(44);
+    expect(box?.height).toBeGreaterThanOrEqual(44);
+  }
+});
+
+test('Web MIDI permission denial explains how to recover or import instead', async ({ page }) => {
+  await page.addInitScript(() => Object.defineProperty(navigator, 'requestMIDIAccess', {
+    configurable: true,
+    value: () => Promise.reject(new DOMException('Permission to use Web MIDI API was not granted.', 'SecurityError'))
+  }));
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Connect live MIDI' }).click();
+  await expect(page.locator('#announcer')).toHaveText('MIDI permission was not granted. Allow MIDI in this site’s browser settings, then connect again, or import a .mid file.');
+  await expect(page.getByRole('button', { name: /Import \.mid or session/i })).toBeVisible();
+});
 
 test('a first service-worker install does not offer a false update', async ({ page }) => {
   await page.goto('/');
@@ -373,7 +586,7 @@ test('all mobile footer and legal navigation links have 44 pixel hit areas', asy
   expect(homeBox?.width).toBeGreaterThanOrEqual(44);
   expect(homeBox?.height).toBeGreaterThanOrEqual(44);
   await page.goto('/privacy/');
-  const back = page.locator('header a');
+  const back = page.locator('header a').first();
   const backBox = await back.boundingBox();
   expect(backBox?.width).toBeGreaterThanOrEqual(44);
   expect(backBox?.height).toBeGreaterThanOrEqual(44);

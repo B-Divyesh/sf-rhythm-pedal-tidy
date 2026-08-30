@@ -1,11 +1,11 @@
-const VERSION = 'rpt-v6';
+const VERSION = 'rpt-v7';
 const SHELL = `${VERSION}-shell`;
 const ASSETS = `${VERSION}-assets`;
 const PRECACHE = [
-  '/', '/demo', '/?v=4', '/offline.html', '/manifest.webmanifest', '/icons/icon.svg',
-  '/icons/icon-192.png', '/icons/icon-512.png', '/icons/icon-maskable-512.png',
-  '/assets/pedal-tape-hero-720.webp', '/assets/pedal-tape-hero.avif', '/assets/pedal-tape-hero.webp', '/assets/pedal-tape-hero.jpg',
-  '/privacy/', '/terms/'
+  '/', '/demo', '/?v=7', '/404.html', '/offline.html', '/manifest.webmanifest', '/icons/icon.svg',
+  '/icons/icon-192.png', '/icons/icon-512.png', '/icons/icon-maskable-512.png', '/icons/apple-touch-icon.png',
+  '/assets/pedal-tape-hero-720.webp', '/assets/pedal-tape-hero.avif', '/assets/pedal-tape-hero.webp', '/assets/pedal-tape-hero.jpg', '/assets/social-card.jpg',
+  '/legal.css', '/privacy/', '/terms/'
 ];
 
 self.addEventListener('install', (event) => {
@@ -32,7 +32,7 @@ self.addEventListener('fetch', (event) => {
   if (event.request.mode === 'navigate') {
     event.respondWith(fetch(event.request).then((response) => {
       const copy = response.clone();
-      caches.open(SHELL).then((cache) => cache.put(event.request, copy));
+      if (response.ok) caches.open(SHELL).then((cache) => cache.put(event.request, copy));
       return response;
     }).catch(async () => (await caches.match(event.request)) || (url.pathname === '/privacy/' || url.pathname === '/terms/' ? caches.match(url.pathname) : caches.match('/')) || caches.match('/offline.html')));
     return;

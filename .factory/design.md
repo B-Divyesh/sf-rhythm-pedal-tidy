@@ -92,3 +92,7 @@ Generated with the factory Azure image deployment via
 sidecar live under `assets/src/`; the shipping WebP is locally optimized and
 is original project artwork. Icons and piano-roll graphics are hand-authored
 SVG/CSS and MIT-licensed with the repository.
+
+The 1200×630 social card is a centered local crop of that same original hero,
+created with Sharp on 2026-08-30. The 180px Apple touch icon is a local resize
+of the hand-authored app icon. No new external source material was introduced.

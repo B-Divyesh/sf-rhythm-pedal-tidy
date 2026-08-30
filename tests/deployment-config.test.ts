@@ -4,7 +4,9 @@ import { describe, expect, it } from 'vitest';
 
 const config = JSON.parse(readFileSync(resolve(process.cwd(), 'public/staticwebapp.config.json'), 'utf8')) as {
   globalHeaders: Record<string, string>;
-  routes: Array<{ route: string; headers?: Record<string, string> }>;
+  navigationFallback?: unknown;
+  responseOverrides: Record<string, { rewrite: string }>;
+  routes: Array<{ route: string; rewrite?: string; headers?: Record<string, string> }>;
 };
 const manifest = JSON.parse(readFileSync(resolve(process.cwd(), 'public/manifest.webmanifest'), 'utf8')) as { start_url: string };
 const serviceWorker = readFileSync(resolve(process.cwd(), 'public/sw.js'), 'utf8');
@@ -24,9 +26,16 @@ describe('static deployment response policy', () => {
   });
 
   it('ships a new service-worker cache version and install URL for this release', () => {
-    expect(serviceWorker).toContain("const VERSION = 'rpt-v6';");
+    expect(serviceWorker).toContain("const VERSION = 'rpt-v7';");
     expect(serviceWorker).toContain("'/demo'");
-    expect(serviceWorker).toContain("'/?v=4'");
-    expect(manifest.start_url).toBe('/?v=4');
+    expect(serviceWorker).toContain("'/?v=7'");
+    expect(serviceWorker).toContain("'/404.html'");
+    expect(manifest.start_url).toBe('/?v=7');
+  });
+
+  it('rewrites only the real demo route and serves unknown routes through the designed 404', () => {
+    expect(config.navigationFallback).toBeUndefined();
+    expect(config.routes.find((route) => route.route === '/demo')?.rewrite).toBe('/index.html');
+    expect(config.responseOverrides['404']).toEqual({ rewrite: '/404.html' });
   });
 });

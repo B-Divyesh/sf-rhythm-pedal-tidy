@@ -25,6 +25,7 @@ let offline = !navigator.onLine;
 let pendingTempoTabFocus: string | undefined;
 let demoMode = new URL(location.href).pathname.replace(/\/+$/, '') === '/demo' || new URL(location.href).searchParams.get('demo') === '1';
 let takeStorage: TakeStorage = createTakeStorage(demoMode ? 'demo' : 'real');
+const BUILD_ID = 'v1.0.1';
 
 function escapeHtml(value: string): string {
   return value.replace(/[&<>'"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[char]!);
@@ -70,7 +71,7 @@ function renderWorkspace(): string {
     return `<section class="empty-state" aria-labelledby="empty-title">
       <span class="tape-number">SIDE A / READY</span>
       <h2 id="empty-title">Bring in a pedal take</h2>
-      <p>Import a Standard MIDI file from any DAW or keyboard. We’ll find notes held open by CC64 and show every suggested cut before you export.</p>
+      <p>Import a Standard MIDI type 0 or 1 file. We’ll find notes held open by CC64 and show each suggested cut.</p>
       <div class="action-row">
         <button class="primary" data-action="import">Import MIDI or session</button>
         <a class="secondary button-link" href="/demo">Try it with sample data</a>
@@ -156,19 +157,35 @@ function focusSelector(element: Element | null): string | undefined {
   return undefined;
 }
 
+function updateRouteMetadata(): void {
+  const title = demoMode ? 'Demo — Rhythm Pedal Tidy' : 'Rhythm Pedal Tidy — clean sustain-pedal MIDI';
+  const description = demoMode
+    ? 'Try sustain-pedal MIDI cleanup with an isolated eight-note practice take.'
+    : 'Clean sustain-pedal MIDI overlaps, compare each repair, replay the take, and export locally.';
+  const canonical = `https://rhythm-pedal-tidy.sociobot.in${demoMode ? '/demo' : '/'}`;
+  document.title = title;
+  document.querySelector<HTMLLinkElement>('link[rel="canonical"]')?.setAttribute('href', canonical);
+  document.querySelector<HTMLMetaElement>('meta[name="description"]')?.setAttribute('content', description);
+  document.querySelector<HTMLMetaElement>('meta[property="og:title"]')?.setAttribute('content', title);
+  document.querySelector<HTMLMetaElement>('meta[property="og:description"]')?.setAttribute('content', description);
+  document.querySelector<HTMLMetaElement>('meta[property="og:url"]')?.setAttribute('content', canonical);
+  document.querySelector<HTMLMetaElement>('meta[name="twitter:title"]')?.setAttribute('content', title);
+  document.querySelector<HTMLMetaElement>('meta[name="twitter:description"]')?.setAttribute('content', description);
+}
+
 function render(preferredFocus?: string, deferFocus = false): void {
   const focus = preferredFocus ?? focusSelector(document.activeElement);
-  document.title = demoMode ? 'Demo — Rhythm Pedal Tidy' : 'Rhythm Pedal Tidy — clean sustain MIDI offline';
+  updateRouteMetadata();
   app.innerHTML = `<header class="site-header">
     <a class="brand" href="/" aria-label="Rhythm Pedal Tidy home"><span class="brand-mark" aria-hidden="true">RPT</span><span>Rhythm Pedal Tidy</span></a>
     <nav aria-label="Main navigation"><a href="/demo">Demo</a><a href="#workspace">Workspace</a><a href="#takes">Takes</a><a href="/privacy/">Privacy</a></nav>
     <span class="privacy-stamp">LOCAL ONLY</span>
   </header>
   ${demoMode ? `<section class="demo-banner" aria-label="Demo controls"><strong>Demo — sample data, nothing is saved to your real takes.</strong><div><button class="secondary compact" data-action="reset-demo">Reset demo</button><button class="text-button demo-exit" data-action="start-real">Start for real</button></div></section>` : ''}
-  ${offline ? '<div class="offline-banner" role="status">Offline deck: imports, cleanup, replay, and exports still work.</div>' : ''}
+  ${offline ? '<div class="offline-banner" role="status">Offline: saved takes, cleanup, replay, and exports remain available.</div>' : ''}
   <main id="main">
     <section class="hero" aria-labelledby="hero-title">
-      <div class="hero-copy"><span class="kicker">MIDI cleanup for practice takes</span><h1 id="hero-title">Clean sustain-pedal<br><em>MIDI overlaps.</em></h1><p>For keyboard and e-kit players who need clean practice takes without changing timing.</p><a class="primary button-link" href="/demo">Try it with sample data</a><span class="action-explainer">Loads an 8-note practice take right away.</span><ul class="hero-facts"><li>Your MIDI stays on this device.</li><li>Works offline after the first visit.</li><li>Export cleaned MIDI free.</li></ul></div>
+      <div class="hero-copy"><span class="kicker">MIDI cleanup for practice takes</span><h1 id="hero-title">Clean sustain-pedal<br><em>MIDI overlaps.</em></h1><p>For keyboard and e-kit players who need clean practice takes without changing note starts.</p><a class="primary button-link" href="/demo">Try it with sample data</a><span class="action-explainer">Loads an 8-note practice take right away.</span><ul class="hero-facts"><li>Your MIDI stays on this device.</li><li>Works offline after the first visit.</li><li>Export cleaned MIDI free.</li></ul></div>
       <picture class="hero-art"><source type="image/webp" media="(max-width: 700px)" srcset="/assets/pedal-tape-hero-720.webp"><source type="image/avif" srcset="/assets/pedal-tape-hero.avif"><source type="image/webp" srcset="/assets/pedal-tape-hero.webp"><img src="/assets/pedal-tape-hero.jpg" width="1200" height="800" alt="Risograph collage of a sustain pedal connected to a cassette and tidy piano-roll strip" decoding="async" fetchpriority="high"></picture>
       <div class="hero-note" aria-label="How it works"><b>01</b> capture <span>→</span> <b>02</b> inspect <span>→</span> <b>03</b> export</div>
     </section>
@@ -191,11 +208,11 @@ function render(preferredFocus?: string, deferFocus = false): void {
     </section>
     <section class="unlock-section" id="use-notes" aria-labelledby="use-notes-title">
       <div class="price-sticker"><span>FULL TOOL</span><strong>FREE</strong><small>No checkout</small></div>
-      <div><span class="eyebrow">Use on your device</span><h2 id="use-notes-title">Bring in your own MIDI.</h2><p>Import a file or connect a compatible MIDI input. Review the repair before exporting the cleaned take.</p><ul><li>Local MIDI import and export</li><li>Live Web MIDI when your browser supports it</li><li>Saved take history on this device</li></ul><p class="fineprint">No account, payment, or performance-data upload is used in this build.</p></div>
+      <div><span class="eyebrow">Use on your device</span><h2 id="use-notes-title">Bring in your own MIDI.</h2><p>Import a type 0 or 1 MIDI file, or connect a compatible MIDI input. Review the repair before export.</p><ul><li>Local MIDI import and export</li><li>Live Web MIDI when your browser supports it</li><li>Saved take history on this device</li></ul><p class="fineprint">No account, payment, analytics, or performance-data upload is used in this build.</p></div>
       <div class="buy-panel"><strong class="unlocked">No checkout in this build</strong><p>All available controls are ready to use. Read the privacy page to see what stays on your device.</p><a class="secondary button-link" href="/privacy/">Read privacy</a></div>
     </section>
   </main>
-  <footer><div><strong>Rhythm Pedal Tidy</strong><span>Made for the gap between practice and the piano roll.</span></div><nav aria-label="Legal"><a href="/privacy/">Privacy</a><a href="/terms/">Terms</a><a href="https://github.com/B-Divyesh/sf-rhythm-pedal-tidy">Source</a></nav><p>All processing stays on this device. Hero artwork is original AI-assisted risograph art.</p></footer>
+  <footer><div><strong>Rhythm Pedal Tidy</strong><span>Clean sustain-pedal overlaps on this device.</span></div><nav aria-label="Legal"><a href="/privacy/">Privacy</a><a href="/terms/">Terms</a><a href="https://github.com/B-Divyesh/sf-rhythm-pedal-tidy">Source</a></nav><p>Built by Param Factory · ${BUILD_ID}<br>Original AI-assisted risograph artwork.</p></footer>
   <div id="update-toast" class="update-toast" hidden><span>A fresh version is ready.</span><button data-action="update">Update now</button></div>`;
   bindEvents();
   if (focus) {

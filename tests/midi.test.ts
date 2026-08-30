@@ -34,6 +34,33 @@ describe('sustain-aware cleanup', () => {
     expect(result.changedCount).toBe(0);
     expect(result.notes[0]!.endMs).toBe(220);
   });
+
+  it('repairs the verifier boundary when a take ends with CC64 held down', () => {
+    const heldAtEnd: Take = {
+      ...sustainedTake,
+      id: 'held-at-end',
+      notes: [
+        { id: 'first-c4', pitch: 60, channel: 0, velocity: 90, startMs: 0, endMs: 200 },
+        { id: 'second-c4', pitch: 60, channel: 0, velocity: 91, startMs: 500, endMs: 700 }
+      ],
+      pedals: [{ timeMs: 50, down: true, channel: 0 }]
+    };
+
+    const result = tidyTake(heldAtEnd);
+    expect(result.changedCount).toBe(1);
+    expect(result.sustainedCount).toBe(1);
+    expect(result.overlapRemovedMs).toBe(200);
+    expect(result.notes.map(({ startMs, endMs, sustainedEndMs, velocity }) => ({ startMs, endMs, sustainedEndMs, velocity }))).toEqual([
+      { startMs: 0, endMs: 500, sustainedEndMs: 700, velocity: 90 },
+      { startMs: 500, endMs: 700, sustainedEndMs: 700, velocity: 91 }
+    ]);
+
+    const exported = parseMidi(writeMidi(result.notes, 120).buffer as ArrayBuffer, 'held-at-end.mid');
+    expect(exported.notes.map(({ startMs, endMs, velocity }) => ({ startMs, endMs, velocity }))).toEqual([
+      { startMs: 0, endMs: 500, velocity: 90 },
+      { startMs: 500, endMs: 700, velocity: 91 }
+    ]);
+  });
 });
 
 describe('MIDI export/import', () => {

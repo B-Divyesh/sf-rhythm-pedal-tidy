@@ -10,8 +10,8 @@ first visit.
 
 The demo seeds **Warm-up in C**: eight notes at 120 BPM, two CC64 pedal
 presses, and three repeated-pitch overlaps. It opens directly on the repaired
-workbench, where the before/after roll, timing score, replay, accept action,
-and MIDI/session exports are available.
+workbench. The before/after roll, timing score, replay, acceptance, and
+MIDI/session exports are ready there.
 
 ## Isolation and reset
 

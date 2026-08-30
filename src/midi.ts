@@ -116,17 +116,22 @@ export function parseMidi(buffer: ArrayBuffer, fileName = 'Imported take'): Take
   return { id: crypto.randomUUID(), name: fileName.replace(/\.midi?$/i, ''), createdAt: new Date().toISOString(), source: 'midi', bpm, notes, pedals };
 }
 
-function pedalReleaseAfter(note: NoteEvent, pedals: PedalEvent[]): number {
+function pedalReleaseAfter(note: NoteEvent, pedals: PedalEvent[], takeEndMs: number): number {
   const channelPedals = pedals.filter((p) => p.channel === note.channel).sort((a, b) => a.timeMs - b.timeMs);
   let down = false;
   for (const pedal of channelPedals) {
     if (pedal.timeMs <= note.endMs) down = pedal.down;
     else if (down && !pedal.down) return pedal.timeMs;
   }
-  return note.endMs;
+  // A recording can stop before the player releases CC64. In that case the
+  // only honest boundary is the end of the captured take. Extending to that
+  // boundary preserves sustain through a later same-pitch strike, where the
+  // normal overlap rule can make the clean cut.
+  return down ? Math.max(note.endMs, takeEndMs) : note.endMs;
 }
 
 export function tidyTake(take: Take): CleanupResult {
+  const takeEndMs = Math.max(0, ...take.notes.map((note) => note.endMs), ...take.pedals.map((pedal) => pedal.timeMs));
   const groups = new Map<string, NoteEvent[]>();
   for (const note of take.notes) {
     const key = `${note.channel}:${note.pitch}`;
@@ -139,7 +144,7 @@ export function tidyTake(take: Take): CleanupResult {
   for (const group of groups.values()) {
     group.sort((a, b) => a.startMs - b.startMs);
     group.forEach((note, index) => {
-      const sustainedEnd = Math.max(note.endMs, pedalReleaseAfter(note, take.pedals));
+      const sustainedEnd = Math.max(note.endMs, pedalReleaseAfter(note, take.pedals, takeEndMs));
       if (sustainedEnd > note.endMs + 0.5) sustainedCount++;
       const next = group[index + 1];
       const endMs = next && next.startMs < sustainedEnd ? Math.max(note.startMs + 10, next.startMs) : sustainedEnd;

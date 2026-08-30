@@ -17,7 +17,11 @@ export class WebMidiRecorder {
 
   async connect(): Promise<MidiDevice[]> {
     if (!navigator.requestMIDIAccess) throw new Error('Web MIDI is not available here. Use Chrome or Edge, or import a .mid file instead.');
-    this.access = await navigator.requestMIDIAccess({ sysex: false });
+    try {
+      this.access = await navigator.requestMIDIAccess({ sysex: false });
+    } catch {
+      throw new Error('MIDI permission was not granted. Allow MIDI in this site’s browser settings, then connect again, or import a .mid file.');
+    }
     return [...this.access.inputs.values()].map((input) => ({ id: input.id, name: input.name ?? 'MIDI input' }));
   }
 
