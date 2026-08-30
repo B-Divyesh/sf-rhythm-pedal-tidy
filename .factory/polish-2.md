@@ -31,7 +31,7 @@ closed, and review 2 is closed with the changes and evidence below.
 
 ## Cumulative evidence
 
-- Clean clone: `/tmp/tmp.AIuxVYRzGd/repo` at `bfd926f`; `npm ci`
+- Clean clone: `/tmp/tmp.meCmlaxNmh/repo` at `84c7bcb`; `npm ci`
   completed with zero vulnerabilities.
 - Every one of the 13 exact commands in `.factory/claims.json` passed
   separately from that clone.

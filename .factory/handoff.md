@@ -44,7 +44,7 @@ Observed results:
 - `npm test`: 28/28 passed.
 - `npm run test:e2e`: 36/36 passed in Chromium 1.58.2.
 - Every exact claim command in `.factory/claims.json`: 13/13 passed
-  separately from clean clone `/tmp/tmp.AIuxVYRzGd/repo` at `bfd926f`.
+  separately from clean clone `/tmp/tmp.meCmlaxNmh/repo` at `84c7bcb`.
 - Offline test uses its own browser context and passes reload, replay, and a
   valid `MThd` MIDI download.
 - Privacy test logs the full demo flow and confirms every request is
