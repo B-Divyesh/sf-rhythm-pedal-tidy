@@ -1,124 +1,58 @@
-# Rhythm Pedal Tidy — repair handoff
+# Rhythm Pedal Tidy — verification handoff
 
-Date: 2026-08-30  
-Work order: `rhythm-pedal-tidy-repair-5`  
-Base verifier candidate: `26ea5d2f90758fe1b2a563227bacaa2b37df8d70`  
-Repair implementation: `04b7b3a` (`fix: isolate demo and remove unavailable checkout`)  
-Deployment class: static PWA (`dist/`)
+Date: 2026-08-30
 
-## Result: deployed and verified
+Work order: `rhythm-pedal-tidy-verify-6`
 
-Every release blocker from `.factory/verification-5.md` is repaired in the
-source tree and regression-covered.
+Requested candidate: `7ffb4b2ddb66be7ce556befaac9625cb65d0c63c`
 
-1. **Claims contract:** Added `.factory/claims.json` with six observable
-   public claims, one exact `@claim:` Playwright test per claim, and a unit
-   guard for unique/runnable tags.
-2. **Isolated demo:** `/demo` and the first-screen **Try it with sample data**
-   action seed `Warm-up in C` into `demo:rhythm-pedal-tidy`, never the real
-   `rhythm-pedal-tidy` database. The persistent banner has **Reset demo** and
-   **Start for real**; the latter clears demo data before returning home.
-   `.factory/demo.md` documents the route, sample, reset, and namespace.
-3. **First read:** The landing heading now states “Clean sustain-pedal MIDI
-   overlaps,” names keyboard/e-kit players, puts the sample action first, and
-   gives three short facts. `.factory/copy-audit.md` records sentence counts
-   and terminology.
-4. **Broken checkout:** The Sociobot checkout was confirmed live-404 and this
-   repo may not register billing products. The shipped build therefore removes
-   the nonfunctional $12 link, license flow, remote billing CSP allowlist, and
-   paid gates. Import, cleanup, export, take history, and compatible live Web
-   MIDI are now available without purchase. This is the closest honest release
-   while billing registration remains factory-owned.
-5. **Billing allowance/429:** `.factory/billing.md` documents that this build
-   makes zero billing requests, so no unverified rate-limit contract remains.
-   The `@claim:no-checkout` browser test asserts no billing URL is shipped and
-   the device control is ungated.
+Available head tested: `7ffb4b772d8266a444568d6d18bba931749e1292`
 
-## Verification
+Live URL: <https://rhythm-pedal-tidy.sociobot.in>
 
-Clean local run on this repair:
+## Result: FAIL
 
-```text
-npm ci                         96 packages; 0 vulnerabilities
-npm test                       15/15 passed
-npm run build                  passed; dist/ produced
-npm run test:e2e               23/23 passed
-```
+Do not release this candidate. The requested commit is absent from both the
+clone and remote, every exact claim command fails from a clean installed clone
+until an undocumented build step is run, the 1280×720 first screen clips the
+sample action below the fold, public promises are missing from the claims
+inventory, and end-of-take held-pedal input is not repaired correctly.
 
-The six documented claim commands each passed independently:
+Full evidence, passing checks, hashes, and reproduction steps are in
+[verification-6.md](verification-6.md).
 
-```text
-@claim:demo-isolation
-@claim:pedal-overlap-repair
-@claim:midi-export
-@claim:offline-reload
-@claim:local-processing
-@claim:no-checkout
-```
+## Verification summary
 
-Browser coverage includes desktop 1440 px and mobile 390 px workbenches,
-first-screen action, separate IndexedDB namespaces, reset/start-real cleanup,
-keyboard replay and focus retention, 44 px targets, 200% text zoom,
-reduced-motion behavior, malformed backup recovery, high-tempo MIDI recovery,
-MIDI download bytes, request-origin privacy, offline reload in a dedicated
-browser context, and a controlled old-worker → current-worker update toast.
-Playwright Axe scans for landing/demo/privacy/terms found no serious or
-critical violations. `verify-url.sh` passed on `/` and `/demo`: each returned
-200 with no console errors, `lang=en`, one h1, a main landmark, and no missing
-image alt or unlabelled button.
+- Requested commit fetch: **FAIL** — remote says `not our ref`; current remote
+  `main` is `7ffb4b772d8266a444568d6d18bba931749e1292`.
+- Clean claim commands after `npm ci`: **FAIL 6/6** because `dist/` is absent.
+- Same claim commands after `npm run build`: **PASS 6/6**.
+- `npm ci`: **PASS**, 0 vulnerabilities.
+- `npm test`: **PASS**, 15/15.
+- `npm run check`: **PASS**.
+- `npm run build`: **PASS**, `dist/` produced.
+- `npm run test:e2e`: **PASS**, 23/23 after build.
+- Live Playwright Axe: **PASS**, zero serious/critical findings on root, demo,
+  privacy, and terms.
+- Live mobile Lighthouse: **100 / 100 / 100 / 100**; LCP 1.3 s, TBT 0 ms,
+  CLS 0.
+- Live privacy log: **PASS**, same-origin requests only for the tested flow.
+- PWA manifest/installability, worker update regression, and offline demo
+  reload: **PASS**.
+- Live deployment matches the production build of available `main` by SHA-256,
+  but cannot be matched to the unavailable requested candidate.
 
-Mobile Lighthouse against the production build preview: Performance **100**,
-Accessibility **100**, Best Practices **100**, SEO **100**; FCP **0.9 s**,
-LCP **1.7 s**, TBT **0 ms**, CLS **0**. Bundle output: JS **32,678 B raw /
-12.12 kB gzip**, CSS **16,538 B raw / 4.33 kB gzip**, mobile hero WebP
-**52,926 B**.
+## Defects by severity
 
-Response-policy regressions verify immutable hashed-asset caching, CSP with
-same-origin `connect-src`, HSTS-compatible security headers, and the updated
-PWA cache version (`rpt-v6`, start URL `/?v=4`). The standalone Axe CLI could
-not start Selenium Chrome in this container; the installed Playwright
-`@axe-core` scanner was used directly against the same Chromium browser and
-passed.
+- **P1:** requested candidate object unavailable; identity cannot be attested.
+- **P1:** clean-clone claim commands fail unless `dist/` is built manually.
+- **P1:** sample action and next-step explanation are clipped at 1280×720.
+- **P1:** no-pedal-up takes lose sustain and report no repeated-note overlap.
+- **P1:** multiple public promises have no claims entries/tests.
+- **P2:** unknown routes return the normal app with HTTP 200; no real 404.
+- **P2:** Open Graph/Twitter, per-route canonical data, standard footer/build
+  identity, and 44 px desktop nav targets are missing.
+- **P3:** Web MIDI permission denial does not state the import fallback.
 
-## Deploy and live identity
-
-Published with `/opt/fleet/lib/deploy-static.sh rhythm-pedal-tidy dist`.
-Azure Static Web Apps deployment ID:
-`7d27b7e6-824c-402e-89f5-66435662d5d2`. The existing eastus2 app and custom
-domain were reused; `https://rhythm-pedal-tidy.sociobot.in` returned 200 after
-publish.
-
-Local and live SHA-256 values matched exactly for the deployed build:
-
-```text
-index.html                  e39fcbed939c195aadbeb92d2d63e7bd998aa795e5cbd39ac994e9edd753a939
-sw.js                       73a83f1d0e286a91ed1f4336d1936cce2fc1deb888f49c1d2d91a97ee125ce2b
-manifest.webmanifest        9305e0db89bcc628437ad5999861c0f65df16a93f863da36cc9e72c5f353a688
-assets/index-Bgpoe8ei.js    278da9423017e11816fc608aa0ab1c69992a167c12221f208c65349fb4b9209f
-assets/index-DcB6-hwY.css   2bc571efb9ef91c9a085519993647187bedf742d148948199f77677d3bfff4be
-```
-
-Live `/` and `/demo` passed `verify-url.sh`: HTTPS 200, no normal-path console
-or page errors, correct titles, `lang=en`, one h1, main landmark, image alt,
-and labelled controls. Live Axe scans of `/demo` at 1440 px and 390 px each
-reported **0** serious/critical findings. A separate isolated live 390 px
-browser flow entered the demo, saw the seeded take/banner, observed only
-same-origin requests, and retained the take plus MIDI export after an offline
-reload. The sole offline console entry was the expected
-`ERR_INTERNET_DISCONNECTED` network probe.
-
-Live root headers: HSTS, CSP (`connect-src 'self'`), `Permissions-Policy` with
-same-origin MIDI, `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`,
-and strict-origin referrer policy. The hashed JS has
-`Cache-Control: public, max-age=31536000, immutable`; HTML and `sw.js`
-revalidate in 30 seconds.
-
-## Known gaps and next step
-
-- A physical Web MIDI device/permission prompt is not available in the
-  container. The import fallback and ungated connect control are tested; test
-  physical capture on a compatible keyboard/e-kit before claiming device
-  compatibility beyond the browser API.
-- The factory must register a future Sociobot product before reintroducing a
-  paid tier. Do not restore a checkout link until it returns a hosted checkout
-  successfully and its verification policy can be tested.
+No product code was modified. Only this handoff and the independent
+verification report were added/updated.
