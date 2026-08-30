@@ -1,84 +1,81 @@
 # Rhythm Pedal Tidy
 
-Rhythm Pedal Tidy is a local-first practice utility for keyboard and e-kit
-players whose sustain-pedal recordings leave overlapping notes in the piano
-roll. It imports or records MIDI, expands CC64 sustain into explicit note
-lengths, trims repeated pitches at the next strike, explains every change,
-scores timing, and exports a clean Standard MIDI file.
+Rhythm Pedal Tidy cleans sustain-pedal MIDI overlaps for keyboard and e-kit
+players. Import or record a practice take, compare the pedal-aware repair,
+replay it with a tempo ramp, and export a clean Standard MIDI file.
 
 Live product: <https://rhythm-pedal-tidy.sociobot.in>
 
-## What ships
+## Try the demo
 
-- Standard MIDI type 0/1 import with tempo, running-status, note, and CC64
-  parsing
-- Pedal-aware de-overlap pass with before/after piano rolls and acceptance
-  tracking
-- Sixteenth-note timing score and a replay tempo ramp
-- Clean MIDI and portable JSON export/import
-- IndexedDB take history that works after refresh and offline
-- Installable PWA shell, responsive 390 px layout, and keyboard operation
-- Optional $12 one-time Plus license for live Web MIDI recording and unlimited
-  visible history; the core repair and all data export remain free
+Open <https://rhythm-pedal-tidy.sociobot.in/demo> or select **Try it with
+sample data** on the first screen. The demo loads an eight-note practice take
+into the `demo:rhythm-pedal-tidy` IndexedDB database. Its banner lets you reset
+the sample or start for real; starting for real clears the demo database and
+returns to the separate real take shelf. See [.factory/demo.md](.factory/demo.md).
 
-Performance data never leaves the browser. The only remote product request is
-license verification after a user supplies or buys a Plus license.
+## What it does
+
+- Imports Standard MIDI type 0/1 files and compatible live Web MIDI input
+- Expands CC64 sustain, trims repeated-pitch overlap, and shows before/after
+  piano rolls before export
+- Scores note starts against a sixteenth-note grid and offers a replay tempo
+  ramp
+- Exports cleaned MIDI, a take JSON file, and an all-takes JSON backup
+- Stores real takes locally in IndexedDB and works offline after the first
+  visited page is cached
+
+MIDI performance data is processed on the device. This build has no analytics,
+payment, checkout, account, or remote license verification.
 
 ## Run locally
 
 Requires Node.js 20 or newer.
 
 ```bash
-npm install
+npm ci
 npm run dev
 ```
 
-Vite prints the local URL. Web MIDI requires a secure context; localhost is
-treated as secure by Chromium browsers. Safari users can use `.mid` import.
+Vite prints the local URL. Web MIDI requires a secure context; Chromium treats
+localhost as secure. Use `.mid` import when a browser does not provide Web
+MIDI.
 
-## Test and build
+## Verify, test, and build
 
 ```bash
+npm ci
 npm test
 npm run build
-npx playwright install chromium  # first browser-test run only
+npx playwright install chromium # only if the pinned browser is absent
 npm run test:e2e
 ```
 
-The exact production build command is `npm run build`. Static output lands in
-`./dist`, with `dist/index.html` at its root. Preview it with:
+Run the claim checks listed in [.factory/claims.json](.factory/claims.json),
+for example:
 
 ```bash
-npm run preview
+npm run test:e2e -- --grep @claim:demo-isolation
 ```
 
-The browser suite covers accessibility, console errors, keyboard replay,
-mobile layout behavior, IndexedDB persistence, legal pages, and an explicit
-offline reload.
+The production build is `npm run build`. It writes a static PWA to `dist/`,
+with `dist/index.html` at its root. Preview it with `npm run preview`.
 
-## How cleanup works
+## Privacy, terms, and deployment
 
-For each channel and pitch, the pass finds whether CC64 was down when note-off
-arrived. It first extends that note to the following pedal-up. If the same
-pitch is struck again before then, the earlier note is cut exactly at the new
-note-on. Starts and velocities are not quantized. Export omits pedal messages
-because their musical effect is baked into the repaired note durations.
+Read the in-product [privacy policy](public/privacy/index.html) and
+[terms](public/terms/index.html). The app has no third-party fonts or runtime
+scripts. The only normal browser requests are to this static product origin.
 
-## Privacy, billing, and deployment
-
-The app has no analytics, ad tech, external fonts, or third-party runtime
-scripts. See [`public/privacy/index.html`](public/privacy/index.html) and
-[`public/terms/index.html`](public/terms/index.html).
-
-Plus checkout and verification use only the Sociobot billing API. Staging and
-localhost use `pilot-api.sociobot.in`; the production hostname uses
-`api.sociobot.in`. Product IDs are not embedded.
-
-Deploy the contents of `dist/` to the static host. DNS, billing registration,
-and infrastructure are intentionally outside this repository.
+Deploy `dist/` as a static site using the supplied Static Web Apps response
+policy. DNS, billing registration, and infrastructure are managed by the
+factory and are intentionally outside this repository. The previously
+advertised $12 checkout is not shipped because the corresponding factory
+product is not registered; all available controls are therefore free in this
+build.
 
 ## Visual system and license
 
-The cassette-era zine system and original artwork provenance are recorded in
+The cassette-era zine system and original artwork provenance are in
 [.factory/design.md](.factory/design.md). Source is MIT licensed; see
 [LICENSE](LICENSE).

@@ -39,6 +39,9 @@ button:active, .button-link:active { transform: translate(3px, 3px); box-shadow:
 .site-header nav { display: flex; gap: 24px; margin-left: auto; }
 .site-header nav a, footer nav a { font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
 .privacy-stamp { padding: 4px 9px; color: var(--deep-red); border: 2px solid var(--red); font-size: 12px; font-weight: bold; transform: rotate(2deg); }
+.demo-banner { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 10px max(18px, calc((100vw - 1280px) / 2)); color: var(--ink); background: var(--mustard); border-bottom: 3px solid var(--ink); }
+.demo-banner > div { display: flex; align-items: center; gap: 12px; }
+.demo-exit { color: var(--ink); font-weight: 800; }
 .offline-banner { padding: 9px 20px; text-align: center; color: var(--ink); background: var(--mustard); border-bottom: 2px solid var(--ink); font-weight: bold; }
 .hero { position: relative; min-height: 620px; display: grid; grid-template-columns: minmax(330px, .78fr) 1.22fr; align-items: stretch; border-bottom: 4px solid var(--ink); }
 .hero-copy { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; padding: 64px 24px 90px max(24px, calc((100vw - 1280px) / 2)); }
@@ -50,6 +53,9 @@ h1 em { color: var(--red); font-style: normal; }
 h2 { font-size: clamp(2rem, 4vw, 3.8rem); text-transform: uppercase; }
 h3 { font-size: clamp(1.35rem, 2vw, 2rem); }
 .hero-copy p { max-width: 570px; margin: 24px 0 30px; font-size: clamp(1rem, 1.6vw, 1.25rem); font-weight: 700; }
+.action-explainer { max-width: 34ch; margin-top: 12px; color: var(--muted); font-size: 14px; font-weight: bold; }
+.hero-facts { display: grid; gap: 4px; margin: 26px 0 0; padding: 0; list-style: none; font-size: 13px; font-weight: bold; }
+.hero-facts li::before { content: "✓"; display: inline-block; width: 20px; color: var(--teal); font-family: var(--display); }
 .hero-art { min-height: 620px; overflow: hidden; border-left: 3px solid var(--ink); }
 .hero-art img { width: 100%; height: 100%; display: block; object-fit: cover; object-position: 63% center; filter: contrast(1.03); }
 .hero-note { position: absolute; z-index: 3; right: 32px; bottom: -3px; padding: 14px 18px; background: var(--ink); color: var(--paper); font-size: 13px; letter-spacing: .06em; text-transform: uppercase; }
@@ -177,6 +183,7 @@ footer p { max-width: 320px; text-align: right; }
   .hero-copy { min-height: 480px; padding: 64px 24px; }
   .hero-art { min-height: 320px; height: 48vw; border-top: 3px solid var(--ink); border-left: 0; }
   .hero-note { right: 0; }
+  .demo-banner { align-items: flex-start; flex-direction: column; }
   .input-deck, .history-layout { grid-template-columns: 1fr; }
   .practice-grid { grid-template-columns: 1fr; }
   .unlock-section { grid-template-columns: minmax(0, 160px) minmax(0, 1fr); }

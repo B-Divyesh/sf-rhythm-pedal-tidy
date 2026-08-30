@@ -17,14 +17,16 @@ describe('static deployment response policy', () => {
 
   it('ships the required browser hardening headers without blocking local MIDI', () => {
     expect(config.globalHeaders['Content-Security-Policy']).toContain("frame-ancestors 'none'");
-    expect(config.globalHeaders['Content-Security-Policy']).toContain('connect-src \'self\' https://api.sociobot.in https://pilot-api.sociobot.in');
+    expect(config.globalHeaders['Content-Security-Policy']).toContain("connect-src 'self'");
+    expect(config.globalHeaders['Content-Security-Policy']).not.toContain('api.sociobot.in');
     expect(config.globalHeaders['Permissions-Policy']).toBe('accelerometer=(), camera=(), geolocation=(), microphone=(), payment=(), usb=(), midi=(self)');
     expect(config.globalHeaders['X-Frame-Options']).toBe('DENY');
   });
 
   it('ships a new service-worker cache version and install URL for this release', () => {
-    expect(serviceWorker).toContain("const VERSION = 'rpt-v5';");
-    expect(serviceWorker).toContain("'/?v=3'");
-    expect(manifest.start_url).toBe('/?v=3');
+    expect(serviceWorker).toContain("const VERSION = 'rpt-v6';");
+    expect(serviceWorker).toContain("'/demo'");
+    expect(serviceWorker).toContain("'/?v=4'");
+    expect(manifest.start_url).toBe('/?v=4');
   });
 });

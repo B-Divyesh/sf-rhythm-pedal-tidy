@@ -1,0 +1,44 @@
+[
+  {
+    "id": "demo-isolation",
+    "claim": "Try it with sample data loads a separate demo that never saves to real takes.",
+    "where": "Landing action, demo banner, README, privacy page",
+    "test": "npm run test:e2e -- --grep @claim:demo-isolation",
+    "sandbox": "Fresh browser context; enter from landing, inspect real and demo IndexedDB databases, reset, and start for real."
+  },
+  {
+    "id": "pedal-overlap-repair",
+    "claim": "The tool finds repeated-note overlaps caused by sustain and shows the repair before export.",
+    "where": "Empty state, workbench, README",
+    "test": "npm run test:e2e -- --grep @claim:pedal-overlap-repair",
+    "sandbox": "Fresh /demo page with its shipped eight-note practice take; assert the visible cut count and before/after views."
+  },
+  {
+    "id": "midi-export",
+    "claim": "Export cleaned MIDI free.",
+    "where": "Landing facts, export control, README",
+    "test": "npm run test:e2e -- --grep @claim:midi-export",
+    "sandbox": "Fresh /demo page; export the sample and assert the download name and Standard MIDI MThd header."
+  },
+  {
+    "id": "offline-reload",
+    "claim": "Works offline after the first visit.",
+    "where": "Landing facts, README",
+    "test": "npm run test:e2e -- --grep @claim:offline-reload",
+    "sandbox": "Dedicated browser context; load /demo under service-worker control, set the context offline, reload, and assert the sample and export control remain."
+  },
+  {
+    "id": "local-processing",
+    "claim": "Your MIDI stays on this device.",
+    "where": "Landing facts, footer, privacy page, README",
+    "test": "npm run test:e2e -- --grep @claim:local-processing",
+    "sandbox": "Record all requests during a demo cleanup flow; assert every request remains on the product origin."
+  },
+  {
+    "id": "no-checkout",
+    "claim": "This build has no checkout; all available controls are ready to use.",
+    "where": "Use-on-your-device section, terms, README",
+    "test": "npm run test:e2e -- --grep @claim:no-checkout",
+    "sandbox": "Fresh landing page; assert there is no checkout or Sociobot billing link and live-MIDI connection is not purchase-gated."
+  }
+]

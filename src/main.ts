@@ -1,9 +1,8 @@
 import './style.css';
 import { parseMidi, sampleTake, scoreTiming, tidyTake, writeMidi } from './midi';
-import { checkoutUrl, consumeReturnLicense, licenseState, removeLicense, restoreLicense, type LicenseState } from './license';
 import { MidiPlayer } from './player';
 import { WebMidiRecorder, type MidiDevice } from './recorder';
-import { deleteTake, listTakes, replaceAllTakes, saveTake } from './storage';
+import { createTakeStorage, type TakeStorage } from './storage';
 import { tempoStateFromTakeBpm, updateTempo, type TempoField } from './tempo';
 import { validateBackup, validateImportedTake } from './backup';
 import type { CleanedNote, NoteEvent, Take } from './types';
@@ -13,7 +12,6 @@ const player = new MidiPlayer();
 const recorder = new WebMidiRecorder();
 let current: Take | null = null;
 let takes: Take[] = [];
-let license: LicenseState = { unlocked: false, pending: true };
 let devices: MidiDevice[] = [];
 let selectedDevice = '';
 let bpmStart = 80;
@@ -25,8 +23,8 @@ let message = '';
 let messageType: 'status' | 'error' = 'status';
 let offline = !navigator.onLine;
 let pendingTempoTabFocus: string | undefined;
-
-consumeReturnLicense();
+let demoMode = new URL(location.href).pathname.replace(/\/+$/, '') === '/demo' || new URL(location.href).searchParams.get('demo') === '1';
+let takeStorage: TakeStorage = createTakeStorage(demoMode ? 'demo' : 'real');
 
 function escapeHtml(value: string): string {
   return value.replace(/[&<>'"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[char]!);
@@ -75,9 +73,9 @@ function renderWorkspace(): string {
       <p>Import a Standard MIDI file from any DAW or keyboard. We’ll find notes held open by CC64 and show every suggested cut before you export.</p>
       <div class="action-row">
         <button class="primary" data-action="import">Import MIDI or session</button>
-        <button class="secondary" data-action="sample">Try the example</button>
+        <a class="secondary button-link" href="/demo">Try it with sample data</a>
       </div>
-      <p class="fineprint">Nothing uploads. Safari? Import works even when live Web MIDI does not.</p>
+      <p class="fineprint">Use .mid import when live Web MIDI is not available in your browser.</p>
     </section>`;
   }
   const result = tidyTake(current);
@@ -141,8 +139,7 @@ function renderWorkspace(): string {
 
 function renderHistory(): string {
   if (!takes.length) return '<p class="muted">Your first take will appear here and survive refreshes.</p>';
-  const visible = license.unlocked ? takes : takes.slice(0, 1);
-  return `<ul class="take-list">${visible.map((take) => `<li class="${take.id === current?.id ? 'selected' : ''}"><button data-open="${take.id}"><strong>${escapeHtml(take.name)}</strong><span>${take.notes.length} notes · ${new Date(take.createdAt).toLocaleString()}</span></button><button class="delete-take" data-delete="${take.id}" aria-label="Delete ${escapeHtml(take.name)}">×</button></li>`).join('')}</ul>${!license.unlocked && takes.length > 1 ? `<p class="locked-note">${takes.length - 1} older take${takes.length === 2 ? '' : 's'} hidden in free mode. Unlock restores the full history.</p>` : ''}`;
+  return `<ul class="take-list">${takes.map((take) => `<li class="${take.id === current?.id ? 'selected' : ''}"><button data-open="${take.id}"><strong>${escapeHtml(take.name)}</strong><span>${take.notes.length} notes · ${new Date(take.createdAt).toLocaleString()}</span></button><button class="delete-take" data-delete="${take.id}" aria-label="Delete ${escapeHtml(take.name)}">×</button></li>`).join('')}</ul>`;
 }
 
 function focusSelector(element: Element | null): string | undefined {
@@ -161,15 +158,17 @@ function focusSelector(element: Element | null): string | undefined {
 
 function render(preferredFocus?: string, deferFocus = false): void {
   const focus = preferredFocus ?? focusSelector(document.activeElement);
+  document.title = demoMode ? 'Demo — Rhythm Pedal Tidy' : 'Rhythm Pedal Tidy — clean sustain MIDI offline';
   app.innerHTML = `<header class="site-header">
     <a class="brand" href="/" aria-label="Rhythm Pedal Tidy home"><span class="brand-mark" aria-hidden="true">RPT</span><span>Rhythm Pedal Tidy</span></a>
-    <nav aria-label="Main navigation"><a href="#workspace">Workspace</a><a href="#takes">Takes</a><a href="#unlock">Unlock</a></nav>
+    <nav aria-label="Main navigation"><a href="/demo">Demo</a><a href="#workspace">Workspace</a><a href="#takes">Takes</a><a href="/privacy/">Privacy</a></nav>
     <span class="privacy-stamp">LOCAL ONLY</span>
   </header>
+  ${demoMode ? `<section class="demo-banner" aria-label="Demo controls"><strong>Demo — sample data, nothing is saved to your real takes.</strong><div><button class="secondary compact" data-action="reset-demo">Reset demo</button><button class="text-button demo-exit" data-action="start-real">Start for real</button></div></section>` : ''}
   ${offline ? '<div class="offline-banner" role="status">Offline deck: imports, cleanup, replay, and exports still work.</div>' : ''}
   <main id="main">
     <section class="hero" aria-labelledby="hero-title">
-      <div class="hero-copy"><span class="kicker">A one-click MIDI repair bench</span><h1 id="hero-title">Untangle the<br><em>pedal take.</em></h1><p>Record or import sustain-heavy MIDI. See each overlap. Keep the feel. Send a clean take back to your DAW.</p><a class="primary button-link" href="#workspace">Tidy a take ↓</a></div>
+      <div class="hero-copy"><span class="kicker">MIDI cleanup for practice takes</span><h1 id="hero-title">Clean sustain-pedal<br><em>MIDI overlaps.</em></h1><p>For keyboard and e-kit players who need clean practice takes without changing timing.</p><a class="primary button-link" href="/demo">Try it with sample data</a><span class="action-explainer">Loads an 8-note practice take right away.</span><ul class="hero-facts"><li>Your MIDI stays on this device.</li><li>Works offline after the first visit.</li><li>Export cleaned MIDI free.</li></ul></div>
       <picture class="hero-art"><source type="image/webp" media="(max-width: 700px)" srcset="/assets/pedal-tape-hero-720.webp"><source type="image/avif" srcset="/assets/pedal-tape-hero.avif"><source type="image/webp" srcset="/assets/pedal-tape-hero.webp"><img src="/assets/pedal-tape-hero.jpg" width="1200" height="800" alt="Risograph collage of a sustain pedal connected to a cassette and tidy piano-roll strip" decoding="async" fetchpriority="high"></picture>
       <div class="hero-note" aria-label="How it works"><b>01</b> capture <span>→</span> <b>02</b> inspect <span>→</span> <b>03</b> export</div>
     </section>
@@ -178,9 +177,8 @@ function render(preferredFocus?: string, deferFocus = false): void {
       <div class="input-controls">
         <button class="primary" data-action="import">↑ Import .mid or session</button>
         <div class="live-midi">
-          <button class="secondary" data-action="connect" ${license.unlocked ? '' : 'aria-describedby="live-lock"'}>${devices.length ? 'Refresh MIDI inputs' : 'Connect live MIDI'}</button>
-          ${license.unlocked && devices.length ? `<label>Input <select data-field="device"><option value="">Choose an input</option>${devices.map((device) => `<option value="${device.id}" ${device.id === selectedDevice ? 'selected' : ''}>${escapeHtml(device.name)}</option>`).join('')}</select></label><button class="record-button ${recorder.recording ? 'recording' : ''}" data-action="record">${recorder.recording ? '■ Stop take' : '● Record take'}</button>` : ''}
-          ${!license.unlocked ? '<span id="live-lock" class="lock-tag">PLUS · live record</span>' : ''}
+          <button class="secondary" data-action="connect">${devices.length ? 'Refresh MIDI inputs' : 'Connect live MIDI'}</button>
+          ${devices.length ? `<label>Input <select data-field="device"><option value="">Choose an input</option>${devices.map((device) => `<option value="${device.id}" ${device.id === selectedDevice ? 'selected' : ''}>${escapeHtml(device.name)}</option>`).join('')}</select></label><button class="record-button ${recorder.recording ? 'recording' : ''}" data-action="record">${recorder.recording ? '■ Stop take' : '● Record take'}</button>` : ''}
         </div>
       </div>
       <input class="visually-hidden" id="file-input" tabindex="-1" aria-label="Choose a MIDI or session file" type="file" accept=".mid,.midi,.json,audio/midi,application/json" />
@@ -191,10 +189,10 @@ function render(preferredFocus?: string, deferFocus = false): void {
       <div class="section-label"><span>ARCHIVE / 02</span><h2 id="takes-title">Take shelf</h2></div>
       <div class="history-layout"><div>${renderHistory()}</div><div class="data-tools"><p>Back up every locally saved take in one portable JSON file.</p><div class="action-row"><button class="secondary" data-action="backup">Export all data</button><button class="text-button" data-action="import">Import backup</button></div></div></div>
     </section>
-    <section class="unlock-section" id="unlock" aria-labelledby="unlock-title">
-      <div class="price-sticker"><span>ONE TIME</span><strong>$12</strong><small>No subscription</small></div>
-      <div><span class="eyebrow">Plus license</span><h2 id="unlock-title">Plug the keyboard straight in.</h2><p>The free bench keeps MIDI import, cleanup, comparison, scoring, replay, and export. Plus adds live Web MIDI capture and unlimited take history.</p><ul><li>Live keyboard and e-kit input</li><li>Unlimited saved take shelf</li><li>One purchase, use on your devices</li></ul><p class="fineprint">Sociobot/Dodo is the merchant of record. Refunds are handled there and revoke the license.</p></div>
-      <div class="buy-panel">${license.unlocked ? `<strong class="unlocked">Plus is unlocked ✓</strong><p>${license.notice ?? 'License checked on this device.'}</p><button class="text-button" data-action="remove-license">Remove license</button>` : `<a class="primary button-link" href="${checkoutUrl()}">Buy Plus — $12</a><label for="license-token">Have a license? Paste it</label><div class="license-row"><input id="license-token" type="text" autocomplete="off" spellcheck="false"><button class="secondary" data-action="restore">Verify</button></div>${license.notice ? `<p class="license-notice">${escapeHtml(license.notice)}</p>` : ''}`}</div>
+    <section class="unlock-section" id="use-notes" aria-labelledby="use-notes-title">
+      <div class="price-sticker"><span>FULL TOOL</span><strong>FREE</strong><small>No checkout</small></div>
+      <div><span class="eyebrow">Use on your device</span><h2 id="use-notes-title">Bring in your own MIDI.</h2><p>Import a file or connect a compatible MIDI input. Review the repair before exporting the cleaned take.</p><ul><li>Local MIDI import and export</li><li>Live Web MIDI when your browser supports it</li><li>Saved take history on this device</li></ul><p class="fineprint">No account, payment, or performance-data upload is used in this build.</p></div>
+      <div class="buy-panel"><strong class="unlocked">No checkout in this build</strong><p>All available controls are ready to use. Read the privacy page to see what stays on your device.</p><a class="secondary button-link" href="/privacy/">Read privacy</a></div>
     </section>
   </main>
   <footer><div><strong>Rhythm Pedal Tidy</strong><span>Made for the gap between practice and the piano roll.</span></div><nav aria-label="Legal"><a href="/privacy/">Privacy</a><a href="/terms/">Terms</a><a href="https://github.com/B-Divyesh/sf-rhythm-pedal-tidy">Source</a></nav><p>All processing stays on this device. Hero artwork is original AI-assisted risograph art.</p></footer>
@@ -208,8 +206,8 @@ function render(preferredFocus?: string, deferFocus = false): void {
 }
 
 async function persist(take: Take): Promise<void> {
-  await saveTake(take);
-  takes = await listTakes();
+  await takeStorage.saveTake(take);
+  takes = await takeStorage.listTakes();
 }
 
 async function loadTake(take: Take, announcement: string): Promise<void> {
@@ -237,10 +235,10 @@ async function handleFile(file: File): Promise<void> {
         render();
         return;
       }
-      await replaceAllTakes(restored);
-      takes = await listTakes();
+      await takeStorage.replaceAllTakes(restored);
+      takes = await takeStorage.listTakes();
       current = takes[0] ?? null;
-      message = `Restored ${takes.length} local take${takes.length === 1 ? '' : 's'}.`;
+      message = `Restored ${takes.length} ${demoMode ? 'demo ' : ''}take${takes.length === 1 ? '' : 's'}.`;
       render();
       return;
     }
@@ -256,9 +254,16 @@ function bindEvents(): void {
     const action = element.dataset.action;
     try {
       if (action === 'import') document.querySelector<HTMLInputElement>('#file-input')?.click();
-      else if (action === 'sample') await loadTake(sampleTake(), 'Example loaded. The same pass runs on your own MIDI.');
-      else if (action === 'connect') {
-        if (!license.unlocked) { location.hash = 'unlock'; return; }
+      else if (action === 'reset-demo' && demoMode) {
+        await takeStorage.clearAllTakes();
+        takes = [];
+        current = null;
+        await loadTake(sampleTake(), 'Demo reset. The sample take is ready again.');
+      } else if (action === 'start-real' && demoMode) {
+        await takeStorage.clearAllTakes();
+        location.assign('/');
+        return;
+      } else if (action === 'connect') {
         devices = await recorder.connect();
         message = devices.length ? `${devices.length} MIDI input${devices.length === 1 ? '' : 's'} found.` : 'No MIDI inputs found. Connect a device, then refresh inputs.';
         render();
@@ -295,18 +300,9 @@ function bindEvents(): void {
         download(JSON.stringify(current, null, 2), `${current.name.replace(/[^a-z0-9-_]+/gi, '-').toLowerCase()}.json`, 'application/json');
       } else if (action === 'backup') {
         download(JSON.stringify({ version: 1, exportedAt: new Date().toISOString(), takes }, null, 2), 'rhythm-pedal-tidy-backup.json', 'application/json');
-      } else if (action === 'restore') {
-        const token = document.querySelector<HTMLInputElement>('#license-token')?.value.trim();
-        if (!token) throw new Error('Paste your license token first.');
-        restoreLicense(token);
-        license = await licenseState(true);
-        message = license.unlocked ? 'Plus restored on this device.' : 'That license could not be verified.';
-        messageType = license.unlocked ? 'status' : 'error';
-        render();
-      } else if (action === 'remove-license') { removeLicense(); license = { unlocked: false, pending: false }; render(); }
-      else if (action === 'remove-current' && current) {
+      } else if (action === 'remove-current' && current) {
         if (confirm(`Remove “${current.name}” from this device? Export it first if you need a copy.`)) {
-          await deleteTake(current.id); takes = await listTakes(); current = takes[0] ?? null; message = 'Take removed from this device.'; render();
+        await takeStorage.deleteTake(current.id); takes = await takeStorage.listTakes(); current = takes[0] ?? null; message = 'Take removed from this device.'; render();
         }
       } else if (action === 'update') location.reload();
     } catch (error) {
@@ -344,7 +340,7 @@ function bindEvents(): void {
   document.querySelectorAll<HTMLButtonElement>('[data-open]').forEach((button) => button.addEventListener('click', () => { current = takes.find((take) => take.id === button.dataset.open) ?? current; if (current) currentBpm = current.bpm; render(); location.hash = 'workspace'; }));
   document.querySelectorAll<HTMLButtonElement>('[data-delete]').forEach((button) => button.addEventListener('click', async () => {
     const take = takes.find((item) => item.id === button.dataset.delete);
-    if (take && confirm(`Delete “${take.name}” from this device?`)) { await deleteTake(take.id); takes = await listTakes(); if (current?.id === take.id) current = takes[0] ?? null; render(); }
+    if (take && confirm(`Delete “${take.name}” from this device?`)) { await takeStorage.deleteTake(take.id); takes = await takeStorage.listTakes(); if (current?.id === take.id) current = takes[0] ?? null; render(); }
   }));
 }
 
@@ -357,10 +353,12 @@ window.addEventListener('keydown', (event) => {
 
 async function init(): Promise<void> {
   render();
-  try { takes = await listTakes(); current = takes[0] ?? null; } catch { messageType = 'error'; message = 'Local storage is unavailable. You can still work, but this take may not survive a refresh.'; }
-  render();
-  license = await licenseState();
-  render();
+  try {
+    takes = await takeStorage.listTakes();
+    current = takes[0] ?? null;
+    if (demoMode && !current) await loadTake(sampleTake(), 'Demo loaded. The sample stays separate from your real takes.');
+    else render();
+  } catch { messageType = 'error'; message = 'Local storage is unavailable. You can still work, but this take may not survive a refresh.'; render(); }
   if ('serviceWorker' in navigator) {
     try {
       const hadController = Boolean(navigator.serviceWorker.controller);

@@ -10,6 +10,7 @@ describe('search metadata', () => {
   it('ships a canonical landing URL and crawlable static discovery files', () => {
     expect(index).toContain('<link rel="canonical" href="https://rhythm-pedal-tidy.sociobot.in/" />');
     expect(robots).toContain('Sitemap: https://rhythm-pedal-tidy.sociobot.in/sitemap.xml');
+    expect(sitemap).toContain('https://rhythm-pedal-tidy.sociobot.in/demo');
     expect(sitemap).toContain('https://rhythm-pedal-tidy.sociobot.in/privacy/');
     expect(sitemap).toContain('https://rhythm-pedal-tidy.sociobot.in/terms/');
   });
