@@ -29,6 +29,7 @@ button { color: inherit; }
 a { color: inherit; text-underline-offset: 4px; }
 /* The paired rings stay legible when a control crosses from paper to ink. */
 button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid var(--focus-light); outline-offset: 3px; box-shadow: 0 0 0 6px var(--focus-dark); }
+h1[tabindex="-1"]:focus { outline: 3px solid var(--focus-light); outline-offset: 6px; box-shadow: 0 0 0 9px var(--focus-dark); }
 button:active, .button-link:active { transform: translate(3px, 3px); box-shadow: none; }
 .skip-link { position: fixed; z-index: 100; top: 8px; left: 8px; padding: 12px 16px; background: var(--ink); color: white; transform: translateY(-150%); }
 .skip-link:focus { transform: none; }

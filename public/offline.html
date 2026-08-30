@@ -11,6 +11,7 @@
     <link rel="icon" href="/icons/icon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png">
     <link rel="stylesheet" href="/legal.css">
+    <script defer src="/route-focus.js"></script>
     <title>Offline — Rhythm Pedal Tidy</title>
   </head>
   <body>
@@ -21,10 +22,11 @@
     </header>
     <main id="main">
       <span class="stamp">OFFLINE</span>
-      <h1>You are offline.</h1>
+      <h1 tabindex="-1">You are offline.</h1>
       <p>Reconnect once if this page appeared before the workspace finished caching.</p>
       <a class="primary-link" href="/">Return to the workspace</a>
     </main>
-    <footer><div><strong>Rhythm Pedal Tidy</strong><span>Clean sustain-pedal overlaps on this device.</span></div><nav aria-label="Legal"><a href="/privacy/">Privacy</a><a href="/terms/">Terms</a></nav><p>Built by Param Factory · v1.0.1<br>Original AI-assisted risograph artwork.</p></footer>
+    <div id="route-announcer" class="visually-hidden" role="status" aria-live="polite"></div>
+    <footer><div><strong>Rhythm Pedal Tidy</strong><span>Clean sustain-pedal overlaps on this device.</span></div><nav aria-label="Legal"><a href="/privacy/">Privacy</a><a href="/terms/">Terms</a></nav><p>Built by Param Factory · v1.0.2</p></footer>
   </body>
 </html>

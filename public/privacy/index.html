@@ -23,6 +23,7 @@
     <link rel="icon" href="/icons/icon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png">
     <link rel="stylesheet" href="/legal.css">
+    <script defer src="/route-focus.js"></script>
     <title>Privacy — Rhythm Pedal Tidy</title>
   </head>
   <body>
@@ -34,7 +35,7 @@
     </header>
     <main id="main">
       <span class="stamp">LOCAL ONLY</span>
-      <h1>Privacy</h1>
+      <h1 tabindex="-1">Privacy</h1>
       <p>Effective August 30, 2026</p>
       <p>Rhythm Pedal Tidy processes MIDI performance data in your browser. Notes, pedal events, scores, and take names stay in IndexedDB on your device.</p>
       <h2>Files and MIDI devices</h2>
@@ -48,6 +49,7 @@
       <h2>Contact</h2>
       <p>Questions can be filed in the <a href="https://github.com/B-Divyesh/sf-rhythm-pedal-tidy">public source repository</a>.</p>
     </main>
-    <footer><div><strong>Rhythm Pedal Tidy</strong><span>Clean sustain-pedal overlaps on this device.</span></div><nav aria-label="Legal"><a href="/privacy/">Privacy</a><a href="/terms/">Terms</a><a href="https://github.com/B-Divyesh/sf-rhythm-pedal-tidy">Source</a></nav><p>Built by Param Factory · v1.0.1<br>Original AI-assisted risograph artwork.</p></footer>
+    <div id="route-announcer" class="visually-hidden" role="status" aria-live="polite"></div>
+    <footer><div><strong>Rhythm Pedal Tidy</strong><span>Clean sustain-pedal overlaps on this device.</span></div><nav aria-label="Legal"><a href="/privacy/">Privacy</a><a href="/terms/">Terms</a><a href="https://github.com/B-Divyesh/sf-rhythm-pedal-tidy">Source</a></nav><p>Built by Param Factory · v1.0.2</p></footer>
   </body>
 </html>

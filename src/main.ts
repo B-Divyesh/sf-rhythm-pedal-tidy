@@ -25,7 +25,7 @@ let offline = !navigator.onLine;
 let pendingTempoTabFocus: string | undefined;
 let demoMode = new URL(location.href).pathname.replace(/\/+$/, '') === '/demo' || new URL(location.href).searchParams.get('demo') === '1';
 let takeStorage: TakeStorage = createTakeStorage(demoMode ? 'demo' : 'real');
-const BUILD_ID = 'v1.0.1';
+const BUILD_ID = 'v1.0.2';
 
 function escapeHtml(value: string): string {
   return value.replace(/[&<>'"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[char]!);
@@ -185,7 +185,7 @@ function render(preferredFocus?: string, deferFocus = false): void {
   ${offline ? '<div class="offline-banner" role="status">Offline: saved takes, cleanup, replay, and exports remain available.</div>' : ''}
   <main id="main">
     <section class="hero" aria-labelledby="hero-title">
-      <div class="hero-copy"><span class="kicker">MIDI cleanup for practice takes</span><h1 id="hero-title">Clean sustain-pedal<br><em>MIDI overlaps.</em></h1><p>For keyboard and e-kit players who need clean practice takes without changing note starts.</p><a class="primary button-link" href="/demo">Try it with sample data</a><span class="action-explainer">Loads an 8-note practice take right away.</span><ul class="hero-facts"><li>Your MIDI stays on this device.</li><li>Works offline after the first visit.</li><li>Export cleaned MIDI free.</li></ul></div>
+      <div class="hero-copy"><span class="kicker">MIDI cleanup for practice takes</span><h1 id="hero-title" tabindex="-1">Clean sustain-pedal<br><em>MIDI overlaps.</em></h1><p>For keyboard and e-kit players who need clean practice takes without changing note starts.</p><a class="primary button-link" href="/demo">Try it with sample data</a><span class="action-explainer">Loads an 8-note practice take right away.</span><ul class="hero-facts"><li>Your MIDI stays on this device.</li><li>Works offline after the first visit.</li><li>Export cleaned MIDI free.</li></ul></div>
       <picture class="hero-art"><source type="image/webp" media="(max-width: 700px)" srcset="/assets/pedal-tape-hero-720.webp"><source type="image/avif" srcset="/assets/pedal-tape-hero.avif"><source type="image/webp" srcset="/assets/pedal-tape-hero.webp"><img src="/assets/pedal-tape-hero.jpg" width="1200" height="800" alt="Risograph collage of a sustain pedal connected to a cassette and tidy piano-roll strip" decoding="async" fetchpriority="high"></picture>
       <div class="hero-note" aria-label="How it works"><b>01</b> capture <span>→</span> <b>02</b> inspect <span>→</span> <b>03</b> export</div>
     </section>
@@ -212,7 +212,8 @@ function render(preferredFocus?: string, deferFocus = false): void {
       <div class="buy-panel"><strong class="unlocked">No checkout in this build</strong><p>All available controls are ready to use. Read the privacy page to see what stays on your device.</p><a class="secondary button-link" href="/privacy/">Read privacy</a></div>
     </section>
   </main>
-  <footer><div><strong>Rhythm Pedal Tidy</strong><span>Clean sustain-pedal overlaps on this device.</span></div><nav aria-label="Legal"><a href="/privacy/">Privacy</a><a href="/terms/">Terms</a><a href="https://github.com/B-Divyesh/sf-rhythm-pedal-tidy">Source</a></nav><p>Built by Param Factory · ${BUILD_ID}<br>Original AI-assisted risograph artwork.</p></footer>
+  <footer><div><strong>Rhythm Pedal Tidy</strong><span>Clean sustain-pedal overlaps on this device.</span></div><nav aria-label="Legal"><a href="/privacy/">Privacy</a><a href="/terms/">Terms</a><a href="https://github.com/B-Divyesh/sf-rhythm-pedal-tidy">Source</a></nav><p>Built by Param Factory · ${BUILD_ID}</p></footer>
+  <div id="route-announcer" class="visually-hidden" role="status" aria-live="polite"></div>
   <div id="update-toast" class="update-toast" hidden><span>A fresh version is ready.</span><button data-action="update">Update now</button></div>`;
   bindEvents();
   if (focus) {
@@ -227,7 +228,7 @@ async function persist(take: Take): Promise<void> {
   takes = await takeStorage.listTakes();
 }
 
-async function loadTake(take: Take, announcement: string): Promise<void> {
+async function loadTake(take: Take, announcement: string, isRouteEntry = false): Promise<void> {
   if (!take.notes.length) throw new Error('No note events were found in that take.');
   const result = tidyTake(take);
   current = { ...take, cleanedNotes: result.notes };
@@ -235,8 +236,8 @@ async function loadTake(take: Take, announcement: string): Promise<void> {
   await persist(current);
   messageType = 'status';
   message = announcement;
-  render('#take-title');
-  document.querySelector('#take-title')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  render(isRouteEntry ? '#hero-title' : '#take-title', isRouteEntry);
+  if (!isRouteEntry) document.querySelector('#take-title')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 async function handleFile(file: File): Promise<void> {
@@ -373,9 +374,10 @@ async function init(): Promise<void> {
   try {
     takes = await takeStorage.listTakes();
     current = takes[0] ?? null;
-    if (demoMode && !current) await loadTake(sampleTake(), 'Demo loaded. The sample stays separate from your real takes.');
-    else render();
-  } catch { messageType = 'error'; message = 'Local storage is unavailable. You can still work, but this take may not survive a refresh.'; render(); }
+    if (demoMode && !current) await loadTake(sampleTake(), 'Demo loaded. The sample stays separate from your real takes.', true);
+    else render('#hero-title', true);
+  } catch { messageType = 'error'; message = 'Local storage is unavailable. You can still work, but this take may not survive a refresh.'; render('#hero-title', true); }
+  announceRouteAndFocus();
   if ('serviceWorker' in navigator) {
     try {
       const hadController = Boolean(navigator.serviceWorker.controller);
@@ -399,5 +401,17 @@ async function init(): Promise<void> {
     render();
   }
 }
+
+function announceRouteAndFocus(): void {
+  document.querySelector<HTMLElement>('#hero-title')?.focus({ preventScroll: true });
+  requestAnimationFrame(() => {
+    const announcer = document.querySelector<HTMLElement>('#route-announcer');
+    if (announcer) announcer.textContent = demoMode ? 'Demo route loaded.' : 'Rhythm Pedal Tidy workspace loaded.';
+  });
+}
+
+window.addEventListener('pageshow', (event) => {
+  if (event.persisted) announceRouteAndFocus();
+});
 
 void init();

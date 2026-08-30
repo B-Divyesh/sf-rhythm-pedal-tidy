@@ -1,11 +1,11 @@
-const VERSION = 'rpt-v7';
+const VERSION = 'rpt-v8';
 const SHELL = `${VERSION}-shell`;
 const ASSETS = `${VERSION}-assets`;
 const PRECACHE = [
-  '/', '/demo', '/?v=7', '/404.html', '/offline.html', '/manifest.webmanifest', '/icons/icon.svg',
+  '/', '/demo', '/?v=8', '/404.html', '/offline.html', '/manifest.webmanifest', '/icons/icon.svg',
   '/icons/icon-192.png', '/icons/icon-512.png', '/icons/icon-maskable-512.png', '/icons/apple-touch-icon.png',
   '/assets/pedal-tape-hero-720.webp', '/assets/pedal-tape-hero.avif', '/assets/pedal-tape-hero.webp', '/assets/pedal-tape-hero.jpg', '/assets/social-card.jpg',
-  '/legal.css', '/privacy/', '/terms/'
+  '/legal.css', '/route-focus.js', '/privacy/', '/terms/'
 ];
 
 self.addEventListener('install', (event) => {

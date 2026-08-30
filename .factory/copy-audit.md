@@ -1,9 +1,9 @@
 # Landing copy audit
 
-Date: 2026-08-30. The cold landing route and its demo workbench were read from
-the production build at 1280×720 and 390×844. Sentence counts split compound
-UI blocks at full stops. No sentence exceeds 22 words, and no banned marketing
-word appears.
+Date: 2026-08-30. The cold landing route, demo workbench, and README were read
+from the production build at 1280×720 and 390×844. Sentence counts split
+compound UI blocks at full stops. No sentence exceeds 22 words, and no banned
+marketing word appears.
 
 | Visitor-facing sentence | Words | Result |
 | --- | ---: | --- |
@@ -49,8 +49,19 @@ word appears.
 | Playback is a simple synth preview. | 6 | pass |
 | Pedal sustain is baked into clean note lengths. | 8 | pass |
 | Clean sustain-pedal overlaps on this device. | 6 | pass |
-| Built by Param Factory · v1.0.1 | 5 | pass |
-| Original AI-assisted risograph artwork. | 4 | pass |
+| Built by Param Factory · v1.0.2 | 5 | pass |
+
+## README repair audit
+
+| Visitor-facing sentence | Words | Result |
+| --- | ---: | --- |
+| Import or record a practice take. | 6 | pass |
+| Compare the repair, replay it with a tempo ramp, and export clean MIDI. | 13 | pass |
+| The demo loads an eight-note practice take in separate sample storage. | 11 | pass |
+| Reset demo restores the sample. | 5 | pass |
+| Start for real clears the demo and returns to your real take shelf. | 14 | pass |
+| It extends notes held by the sustain pedal, then cuts a repeated note at the next strike. | 17 | pass |
+| It never moves note starts. | 5 | pass |
 
 ## Public promise inventory
 

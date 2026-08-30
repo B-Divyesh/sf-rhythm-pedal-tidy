@@ -1,0 +1,1 @@
+Clean sustain-pedal MIDI overlaps in practice takes without moving note starts.

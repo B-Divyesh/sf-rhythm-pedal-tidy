@@ -72,7 +72,7 @@
   {
     "id": "local-processing",
     "claim": "MIDI processing and storage stay on the device with no analytics, tracking, third-party scripts, or font requests.",
-    "where": "Landing facts, device section, footer, privacy page, README",
+    "where": "Landing facts, device section, privacy page, README",
     "test": "npm run test:e2e -- --grep @claim:local-processing",
     "sandbox": "Record every request across a fresh demo cleanup and verify every URL and script origin is the product origin."
   },

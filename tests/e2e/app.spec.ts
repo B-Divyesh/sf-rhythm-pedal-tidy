@@ -329,6 +329,8 @@ for (const path of ['/privacy/', '/terms/', '/404.html']) {
     await page.goto(path);
     await expect(page.locator('main')).toBeVisible();
     await expect(page.getByRole('heading', { level: 1 })).toHaveCount(1);
+    await expect(page.getByRole('heading', { level: 1 })).toBeFocused();
+    await expect(page.locator('#route-announcer')).toContainText('loaded.');
     const home = page.locator('header a').first();
     await home.focus();
     await expect(home).toBeFocused();
@@ -352,10 +354,24 @@ test('route metadata, common footer identity, and the designed 404 are complete'
     await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', route.canonical);
     await expect(page.locator('meta[property="og:image"]')).toHaveAttribute('content', /\/assets\/social-card\.jpg$/);
     await expect(page.locator('meta[name="twitter:card"]')).toHaveAttribute('content', 'summary_large_image');
-    await expect(page.getByText('Built by Param Factory · v1.0.1')).toBeVisible();
+    await expect(page.getByText('Built by Param Factory · v1.0.2')).toBeVisible();
   }
   await expect(page.getByRole('heading', { level: 1, name: 'This page is not here.' })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Return to the workspace' })).toBeVisible();
+});
+
+test('route navigation and browser history focus and announce the route heading', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.goto('/');
+  await expect(page.getByRole('heading', { level: 1 })).toBeFocused();
+  await page.getByRole('navigation', { name: 'Main navigation' }).getByRole('link', { name: 'Demo' }).click();
+  await expect(page).toHaveURL(/\/demo$/);
+  await expect(page.getByRole('heading', { level: 1 })).toBeFocused();
+  await expect(page.locator('#route-announcer')).toHaveText('Demo route loaded.');
+  await page.goBack();
+  await expect(page).toHaveURL(`${APP_ORIGIN}/`);
+  await expect(page.getByRole('heading', { level: 1 })).toBeFocused();
+  await expect(page.locator('#route-announcer')).toHaveText('Rhythm Pedal Tidy workspace loaded.');
 });
 
 test('the complete sample action and facts fit at 1280 by 720 and desktop nav targets are 44 pixels', async ({ page }) => {

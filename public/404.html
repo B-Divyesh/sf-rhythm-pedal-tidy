@@ -24,6 +24,7 @@
     <link rel="icon" href="/icons/icon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png">
     <link rel="stylesheet" href="/legal.css">
+    <script defer src="/route-focus.js"></script>
     <title>Page not found — Rhythm Pedal Tidy</title>
   </head>
   <body>
@@ -35,11 +36,12 @@
     </header>
     <main id="main" class="not-found">
       <span class="stamp">404 / END OF TAPE</span>
-      <h1>This page is not here.</h1>
+      <h1 tabindex="-1">This page is not here.</h1>
       <p>The address may be wrong, or the page may have moved.</p>
       <a class="primary-link" href="/">Return to the workspace</a>
       <a class="secondary-link" href="/demo">Try the sample take</a>
     </main>
-    <footer><div><strong>Rhythm Pedal Tidy</strong><span>Clean sustain-pedal overlaps on this device.</span></div><nav aria-label="Legal"><a href="/privacy/">Privacy</a><a href="/terms/">Terms</a><a href="https://github.com/B-Divyesh/sf-rhythm-pedal-tidy">Source</a></nav><p>Built by Param Factory · v1.0.1<br>Original AI-assisted risograph artwork.</p></footer>
+    <div id="route-announcer" class="visually-hidden" role="status" aria-live="polite"></div>
+    <footer><div><strong>Rhythm Pedal Tidy</strong><span>Clean sustain-pedal overlaps on this device.</span></div><nav aria-label="Legal"><a href="/privacy/">Privacy</a><a href="/terms/">Terms</a><a href="https://github.com/B-Divyesh/sf-rhythm-pedal-tidy">Source</a></nav><p>Built by Param Factory · v1.0.2</p></footer>
   </body>
 </html>
