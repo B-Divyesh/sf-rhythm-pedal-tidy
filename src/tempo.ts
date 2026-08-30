@@ -18,6 +18,20 @@ const limits: Record<TempoField, { label: string; min: number; max: number }> = 
   'bpm-step': { label: 'Step', min: 1, max: 30 }
 };
 
+function clamp(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, value));
+}
+
+/**
+ * MIDI tempos are not limited to the practice ramp's safe range. Convert one
+ * to a valid, whole-number ramp before it can be rendered or played.
+ */
+export function tempoStateFromTakeBpm(takeBpm: number): TempoState {
+  const end = clamp(Math.round(Number.isFinite(takeBpm) ? takeBpm : 120), limits['bpm-end'].min, limits['bpm-end'].max);
+  const start = clamp(end - 20, limits['bpm-start'].min, limits['bpm-start'].max);
+  return { start, end: Math.max(start, end), step: 5, current: start };
+}
+
 function wholeNumber(value: string): number | null {
   const parsed = Number(value);
   return Number.isFinite(parsed) && value.trim() !== '' ? Math.round(parsed) : null;

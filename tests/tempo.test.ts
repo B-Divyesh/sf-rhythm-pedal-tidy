@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { updateTempo, type TempoState } from '../src/tempo';
+import { tempoStateFromTakeBpm, updateTempo, type TempoState } from '../src/tempo';
 
 const initial: TempoState = { start: 80, end: 120, step: 5, current: 80 };
 
@@ -19,5 +19,9 @@ describe('tempo ramp validation', () => {
     expect(blank.announcement).toBe('Step needs a whole BPM value. It was restored to 5 BPM.');
     expect(finish.state).toEqual({ start: 140, end: 140, step: 5, current: 140 });
     expect(finish.announcement).toBe('Finish cannot be below Start. It was set to 140 BPM.');
+  });
+
+  it('bounds an imported 400 BPM take before it reaches the ramp controls', () => {
+    expect(tempoStateFromTakeBpm(400)).toEqual({ start: 240, end: 300, step: 5, current: 240 });
   });
 });

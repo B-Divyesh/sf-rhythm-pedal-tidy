@@ -4,7 +4,8 @@ import { checkoutUrl, consumeReturnLicense, licenseState, removeLicense, restore
 import { MidiPlayer } from './player';
 import { WebMidiRecorder, type MidiDevice } from './recorder';
 import { deleteTake, listTakes, replaceAllTakes, saveTake } from './storage';
-import { updateTempo, type TempoField } from './tempo';
+import { tempoStateFromTakeBpm, updateTempo, type TempoField } from './tempo';
+import { validateBackup, validateImportedTake } from './backup';
 import type { CleanedNote, NoteEvent, Take } from './types';
 
 const app = document.querySelector<HTMLDivElement>('#app')!;
@@ -23,6 +24,7 @@ let playProgress = 0;
 let message = '';
 let messageType: 'status' | 'error' = 'status';
 let offline = !navigator.onLine;
+let pendingTempoTabFocus: string | undefined;
 
 consumeReturnLicense();
 
@@ -84,7 +86,7 @@ function renderWorkspace(): string {
   const accepted = current.accepted === true;
   return `<section class="workbench" aria-labelledby="take-title">
     <div class="take-heading">
-      <div><span class="tape-number">${escapeHtml(current.source.toUpperCase())} / ${new Date(current.createdAt).toLocaleDateString()}</span><h2 id="take-title">${escapeHtml(current.name)}</h2></div>
+      <div><span class="tape-number">${escapeHtml(current.source.toUpperCase())} / ${new Date(current.createdAt).toLocaleDateString()}</span><h2 id="take-title" tabindex="-1">${escapeHtml(current.name)}</h2></div>
       <button class="text-button danger-text" data-action="remove-current">Remove take</button>
     </div>
     <div class="stats-strip" aria-label="Take summary">
@@ -143,7 +145,22 @@ function renderHistory(): string {
   return `<ul class="take-list">${visible.map((take) => `<li class="${take.id === current?.id ? 'selected' : ''}"><button data-open="${take.id}"><strong>${escapeHtml(take.name)}</strong><span>${take.notes.length} notes · ${new Date(take.createdAt).toLocaleString()}</span></button><button class="delete-take" data-delete="${take.id}" aria-label="Delete ${escapeHtml(take.name)}">×</button></li>`).join('')}</ul>${!license.unlocked && takes.length > 1 ? `<p class="locked-note">${takes.length - 1} older take${takes.length === 2 ? '' : 's'} hidden in free mode. Unlock restores the full history.</p>` : ''}`;
 }
 
-function render(): void {
+function focusSelector(element: Element | null): string | undefined {
+  if (!(element instanceof HTMLElement)) return undefined;
+  if (element.id) return `#${CSS.escape(element.id)}`;
+  const action = element.dataset.action;
+  if (action) return `[data-action="${CSS.escape(action)}"]`;
+  const field = element.dataset.field;
+  if (field) return `[data-field="${CSS.escape(field)}"]`;
+  const open = element.dataset.open;
+  if (open) return `[data-open="${CSS.escape(open)}"]`;
+  const remove = element.dataset.delete;
+  if (remove) return `[data-delete="${CSS.escape(remove)}"]`;
+  return undefined;
+}
+
+function render(preferredFocus?: string, deferFocus = false): void {
+  const focus = preferredFocus ?? focusSelector(document.activeElement);
   app.innerHTML = `<header class="site-header">
     <a class="brand" href="/" aria-label="Rhythm Pedal Tidy home"><span class="brand-mark" aria-hidden="true">RPT</span><span>Rhythm Pedal Tidy</span></a>
     <nav aria-label="Main navigation"><a href="#workspace">Workspace</a><a href="#takes">Takes</a><a href="#unlock">Unlock</a></nav>
@@ -183,6 +200,11 @@ function render(): void {
   <footer><div><strong>Rhythm Pedal Tidy</strong><span>Made for the gap between practice and the piano roll.</span></div><nav aria-label="Legal"><a href="/privacy/">Privacy</a><a href="/terms/">Terms</a><a href="https://github.com/B-Divyesh/sf-rhythm-pedal-tidy">Source</a></nav><p>All processing stays on this device. Hero artwork is original AI-assisted risograph art.</p></footer>
   <div id="update-toast" class="update-toast" hidden><span>A fresh version is ready.</span><button data-action="update">Update now</button></div>`;
   bindEvents();
+  if (focus) {
+    const restore = () => document.querySelector<HTMLElement>(focus)?.focus({ preventScroll: true });
+    if (deferFocus) requestAnimationFrame(restore);
+    else restore();
+  }
 }
 
 async function persist(take: Take): Promise<void> {
@@ -194,30 +216,36 @@ async function loadTake(take: Take, announcement: string): Promise<void> {
   if (!take.notes.length) throw new Error('No note events were found in that take.');
   const result = tidyTake(take);
   current = { ...take, cleanedNotes: result.notes };
-  bpmEnd = Math.max(30, current.bpm);
-  bpmStart = Math.max(30, bpmEnd - 20);
-  currentBpm = bpmStart;
+  ({ start: bpmStart, end: bpmEnd, step: bpmStep, current: currentBpm } = tempoStateFromTakeBpm(current.bpm));
   await persist(current);
   messageType = 'status';
   message = announcement;
-  render();
+  render('#take-title');
   document.querySelector('#take-title')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 async function handleFile(file: File): Promise<void> {
   if (file.size > 20 * 1024 * 1024) throw new Error('That file is over 20 MB. Split the take and try again.');
   if (file.name.toLowerCase().endsWith('.json')) {
-    const parsed = JSON.parse(await file.text()) as { version?: number; takes?: Take[] } | Take;
-    if ('takes' in parsed && Array.isArray(parsed.takes)) {
-      await replaceAllTakes(parsed.takes);
+    let parsed: unknown;
+    try { parsed = JSON.parse(await file.text()); } catch { throw new Error('That JSON file could not be read. Choose an exported session or backup.'); }
+    if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed) && 'takes' in parsed) {
+      const restored = validateBackup(parsed);
+      if (takes.length && !confirm(`Restore ${restored.length} take${restored.length === 1 ? '' : 's'}? This replaces ${takes.length} take${takes.length === 1 ? '' : 's'} currently saved on this device.`)) {
+        messageType = 'status';
+        message = 'Backup restore was cancelled. Your saved takes were not changed.';
+        render();
+        return;
+      }
+      await replaceAllTakes(restored);
       takes = await listTakes();
       current = takes[0] ?? null;
       message = `Restored ${takes.length} local take${takes.length === 1 ? '' : 's'}.`;
       render();
       return;
     }
-    if (!('notes' in parsed) || !Array.isArray(parsed.notes)) throw new Error('That session JSON does not contain MIDI notes.');
-    await loadTake({ ...parsed, id: crypto.randomUUID(), source: 'json', createdAt: new Date().toISOString() } as Take, 'Session imported and cleaned.');
+    const session = validateImportedTake(parsed);
+    await loadTake({ ...session, id: crypto.randomUUID(), source: 'json', createdAt: new Date().toISOString() }, 'Session imported and cleaned.');
     return;
   }
   await loadTake(parseMidi(await file.arrayBuffer(), file.name), 'MIDI imported. Cleanup suggestions are ready.');
@@ -293,15 +321,26 @@ function bindEvents(): void {
     try { await handleFile(file); } catch (error) { messageType = 'error'; message = error instanceof Error ? error.message : 'Could not import that file.'; render(); }
   });
   document.querySelector<HTMLSelectElement>('[data-field="device"]')?.addEventListener('change', (event) => { selectedDevice = (event.currentTarget as HTMLSelectElement).value; });
-  for (const field of ['bpm-start', 'bpm-end', 'bpm-step'] as TempoField[]) document.querySelector<HTMLInputElement>(`[data-field="${field}"]`)?.addEventListener('change', (event) => {
+  const tempoFields = ['bpm-start', 'bpm-end', 'bpm-step'] as TempoField[];
+  for (const field of tempoFields) {
+    const input = document.querySelector<HTMLInputElement>(`[data-field="${field}"]`);
+    input?.addEventListener('keydown', (event) => {
+      if (event.key !== 'Tab') return;
+      const next = tempoFields[tempoFields.indexOf(field) + (event.shiftKey ? -1 : 1)];
+      pendingTempoTabFocus = next ? `[data-field="${next}"]` : undefined;
+    });
+    input?.addEventListener('change', (event) => {
     const update = updateTempo({ start: bpmStart, end: bpmEnd, step: bpmStep, current: currentBpm }, field, (event.currentTarget as HTMLInputElement).value);
     bpmStart = update.state.start;
     bpmEnd = update.state.end;
     bpmStep = update.state.step;
     currentBpm = update.state.current;
     if (update.announcement) { messageType = 'status'; message = update.announcement; }
-    render();
-  });
+    const nextFocus = pendingTempoTabFocus;
+    pendingTempoTabFocus = undefined;
+    render(nextFocus, Boolean(nextFocus));
+    });
+  }
   document.querySelectorAll<HTMLButtonElement>('[data-open]').forEach((button) => button.addEventListener('click', () => { current = takes.find((take) => take.id === button.dataset.open) ?? current; if (current) currentBpm = current.bpm; render(); location.hash = 'workspace'; }));
   document.querySelectorAll<HTMLButtonElement>('[data-delete]').forEach((button) => button.addEventListener('click', async () => {
     const take = takes.find((item) => item.id === button.dataset.delete);
