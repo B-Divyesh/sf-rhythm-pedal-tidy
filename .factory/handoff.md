@@ -6,7 +6,7 @@ Base verifier candidate: `26ea5d2f90758fe1b2a563227bacaa2b37df8d70`
 Repair implementation: `04b7b3a` (`fix: isolate demo and remove unavailable checkout`)  
 Deployment class: static PWA (`dist/`)
 
-## Result: ready to deploy
+## Result: deployed and verified
 
 Every release blocker from `.factory/verification-5.md` is repaired in the
 source tree and regression-covered.
@@ -82,8 +82,13 @@ passed.
 
 ## Deploy and live identity
 
-Static deployment is pending the factory deploy command. Build hashes before
-deployment:
+Published with `/opt/fleet/lib/deploy-static.sh rhythm-pedal-tidy dist`.
+Azure Static Web Apps deployment ID:
+`7d27b7e6-824c-402e-89f5-66435662d5d2`. The existing eastus2 app and custom
+domain were reused; `https://rhythm-pedal-tidy.sociobot.in` returned 200 after
+publish.
+
+Local and live SHA-256 values matched exactly for the deployed build:
 
 ```text
 index.html                  e39fcbed939c195aadbeb92d2d63e7bd998aa795e5cbd39ac994e9edd753a939
@@ -93,9 +98,20 @@ assets/index-Bgpoe8ei.js    278da9423017e11816fc608aa0ab1c69992a167c12221f208c65
 assets/index-DcB6-hwY.css   2bc571efb9ef91c9a085519993647187bedf742d148948199f77677d3bfff4be
 ```
 
-After deployment, compare these static files on
-`https://rhythm-pedal-tidy.sociobot.in` and confirm `/demo`, offline reload,
-and the response headers.
+Live `/` and `/demo` passed `verify-url.sh`: HTTPS 200, no normal-path console
+or page errors, correct titles, `lang=en`, one h1, main landmark, image alt,
+and labelled controls. Live Axe scans of `/demo` at 1440 px and 390 px each
+reported **0** serious/critical findings. A separate isolated live 390 px
+browser flow entered the demo, saw the seeded take/banner, observed only
+same-origin requests, and retained the take plus MIDI export after an offline
+reload. The sole offline console entry was the expected
+`ERR_INTERNET_DISCONNECTED` network probe.
+
+Live root headers: HSTS, CSP (`connect-src 'self'`), `Permissions-Policy` with
+same-origin MIDI, `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`,
+and strict-origin referrer policy. The hashed JS has
+`Cache-Control: public, max-age=31536000, immutable`; HTML and `sw.js`
+revalidate in 30 seconds.
 
 ## Known gaps and next step
 
