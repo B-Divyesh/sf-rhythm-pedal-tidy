@@ -69,3 +69,33 @@ describe('review-2 product language and demo repairs', () => {
     expect(catalogDescription).toMatch(/^Clean\b/);
   });
 });
+
+describe('review-3 cache, copy, link, and offline repairs', () => {
+  it('uses literal sustain and export explanations and a literal 404 label', () => {
+    const notFound = readFileSync(resolve(process.cwd(), 'public/404.html'), 'utf8');
+    expect(appSource).toContain('extended while the sustain pedal was held.');
+    expect(appSource).toContain('The cleaned note lengths include the sustain-pedal holds.');
+    expect(appSource).not.toContain('pedal-up');
+    expect(appSource).not.toContain('baked into clean note lengths');
+    expect(notFound).toContain('404 / PAGE NOT FOUND');
+    expect(notFound).not.toContain('END OF TAPE');
+  });
+
+  it('names GitHub before every product external repository link', () => {
+    const publicPages = [
+      appSource,
+      privacy,
+      readFileSync(resolve(process.cwd(), 'public/terms/index.html'), 'utf8'),
+      readFileSync(resolve(process.cwd(), 'public/404.html'), 'utf8'),
+      readFileSync(resolve(process.cwd(), 'public/offline.html'), 'utf8')
+    ].join('\n');
+    const links = [...publicPages.matchAll(/<a href="https:\/\/github\.com\/B-Divyesh\/sf-rhythm-pedal-tidy[^\"]*">([^<]+)<\/a>/g)];
+    expect(links.length).toBeGreaterThanOrEqual(6);
+    for (const link of links) expect(link[1]).toContain('GitHub');
+  });
+
+  it('uses a new build id and a verb-first catalog sentence', () => {
+    expect(appSource).toContain("const BUILD_ID = 'v1.0.4'");
+    expect(catalogDescription).toBe('Clean sustain-pedal overlaps, review each repair, and export practice takes without moving note starts.');
+  });
+});

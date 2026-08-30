@@ -29,7 +29,7 @@ describe('search metadata', () => {
       expect(html).toContain('name="description"');
       expect(html).toContain('property="og:title"');
       expect(html).toContain('property="og:description"');
-      expect(html).toContain('property="og:image" content="https://rhythm-pedal-tidy.sociobot.in/assets/social-card.jpg"');
+      expect(html).toContain('property="og:image" content="https://rhythm-pedal-tidy.sociobot.in/assets/social-card.5897ad1a.jpg"');
       expect(html).toContain('name="twitter:card" content="summary_large_image"');
       expect(html).toContain('name="twitter:image"');
       expect(html).toContain('rel="apple-touch-icon" sizes="180x180"');

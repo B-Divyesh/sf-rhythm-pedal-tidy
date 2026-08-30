@@ -299,6 +299,9 @@ test('@claim:saved-take-history keeps cleanup acceptance through refresh and sup
 test('@claim:offline-reload retains the demo after the first service-worker-controlled visit', async ({ browser }) => {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
   const page = await context.newPage();
+  const errors: string[] = [];
+  page.on('console', (message) => { if (message.type() === 'error') errors.push(message.text()); });
+  page.on('pageerror', (error) => errors.push(error.message));
   try {
     await page.goto(`${APP_ORIGIN}/demo`);
     await expect(page.getByRole('heading', { name: 'Warm-up in C' })).toBeVisible();
@@ -314,6 +317,7 @@ test('@claim:offline-reload retains the demo after the first service-worker-cont
     await page.getByRole('button', { name: 'Replay clean take' }).click();
     await expect(page.getByRole('button', { name: 'Stop replay' })).toBeVisible();
     await page.getByRole('button', { name: 'Stop replay' }).click();
+    expect(errors).toEqual([]);
   } finally {
     await context.close();
   }
@@ -391,12 +395,14 @@ test('route metadata, common footer identity, and the designed 404 are complete'
     await page.goto(route.path);
     await expect(page).toHaveTitle(route.title);
     await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', route.canonical);
-    await expect(page.locator('meta[property="og:image"]')).toHaveAttribute('content', /\/assets\/social-card\.jpg$/);
+    await expect(page.locator('meta[property="og:image"]')).toHaveAttribute('content', /\/assets\/social-card\.[a-f0-9]{8}\.jpg$/);
     await expect(page.locator('meta[name="twitter:card"]')).toHaveAttribute('content', 'summary_large_image');
-    await expect(page.getByText('Built by Param Factory · v1.0.3')).toBeVisible();
+    await expect(page.getByText('Built by Param Factory · v1.0.4')).toBeVisible();
   }
   await expect(page.getByRole('heading', { level: 1, name: 'This page is not here.' })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Return to the workspace' })).toBeVisible();
+  await expect(page.getByText('404 / PAGE NOT FOUND')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Source on GitHub' })).toBeVisible();
 });
 
 test('route navigation and browser history focus and announce the route heading', async ({ page }) => {

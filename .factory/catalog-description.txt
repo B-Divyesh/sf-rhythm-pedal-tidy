@@ -1,1 +1,1 @@
-Clean sustain-pedal overlaps, compare each repair, and export practice takes without moving note starts.
+Clean sustain-pedal overlaps, review each repair, and export practice takes without moving note starts.

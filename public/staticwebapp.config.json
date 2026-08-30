@@ -11,13 +11,40 @@
       "rewrite": "/404.html"
     }
   },
+  "mimeTypes": {
+    ".avif": "image/avif"
+  },
   "routes": [
     {
       "route": "/demo",
       "rewrite": "/index.html"
     },
     {
-      "route": "/assets/*",
+      "route": "/assets/pedal-tape-hero-720.b72d80ab.webp",
+      "headers": {
+        "Cache-Control": "public, max-age=31536000, immutable"
+      }
+    },
+    {
+      "route": "/assets/pedal-tape-hero.5ad11ba0.avif",
+      "headers": {
+        "Cache-Control": "public, max-age=31536000, immutable"
+      }
+    },
+    {
+      "route": "/assets/pedal-tape-hero.5f13e546.webp",
+      "headers": {
+        "Cache-Control": "public, max-age=31536000, immutable"
+      }
+    },
+    {
+      "route": "/assets/pedal-tape-hero.6e7a460f.jpg",
+      "headers": {
+        "Cache-Control": "public, max-age=31536000, immutable"
+      }
+    },
+    {
+      "route": "/assets/social-card.5897ad1a.jpg",
       "headers": {
         "Cache-Control": "public, max-age=31536000, immutable"
       }

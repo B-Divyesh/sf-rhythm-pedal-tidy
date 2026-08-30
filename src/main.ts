@@ -25,7 +25,7 @@ let offline = !navigator.onLine;
 let pendingTempoTabFocus: string | undefined;
 let demoMode = new URL(location.href).pathname.replace(/\/+$/, '') === '/demo' || new URL(location.href).searchParams.get('demo') === '1';
 let takeStorage: TakeStorage = createTakeStorage(demoMode ? 'demo' : 'real');
-const BUILD_ID = 'v1.0.3';
+const BUILD_ID = 'v1.0.4';
 
 function escapeHtml(value: string): string {
   return value.replace(/[&<>'"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[char]!);
@@ -108,7 +108,7 @@ function renderWorkspace(): string {
       <div class="roll-row"><span>Before</span>${timeline(current.notes.map((note) => ({ ...note, endMs: (result.notes.find((n) => n.id === note.id)?.sustainedEndMs ?? note.endMs) })), false)}</div>
       <div class="roll-row"><span>After</span>${timeline(cleaned, true)}</div>
     </div>
-    <p class="explanation">${result.sustainedCount} note release${result.sustainedCount === 1 ? '' : 's'} extended to pedal-up. Repeated pitches are then cut at the next strike; timing and velocity stay untouched.</p>
+    <p class="explanation">${result.sustainedCount} note release${result.sustainedCount === 1 ? '' : 's'} extended while the sustain pedal was held. Repeated pitches are then cut at the next strike; timing and velocity stay untouched.</p>
     <div class="approval-bar ${accepted ? 'accepted' : ''}">
       <div><strong>${accepted ? 'Cleanup accepted' : 'Does this repair look right?'}</strong><span>${accepted ? 'Your acceptance is stored only on this device.' : 'Accepting helps you track whether the pass needed manual work.'}</span></div>
       <button class="${accepted ? 'secondary' : 'primary'}" data-action="accept">${accepted ? 'Accepted ✓' : 'Accept cleanup'}</button>
@@ -137,7 +137,7 @@ function renderWorkspace(): string {
       </section>
     </div>
     <div class="export-bar">
-      <div><strong>Export the cleaned take</strong><span>Pedal sustain is baked into clean note lengths.</span></div>
+      <div><strong>Export the cleaned take</strong><span>The cleaned note lengths include the sustain-pedal holds.</span></div>
       <button class="primary" data-action="export-midi">Export cleaned MIDI</button>
       <button class="secondary" data-action="export-json">Export take</button>
     </div>
@@ -185,7 +185,7 @@ function render(preferredFocus?: string, deferFocus = false): void {
   document.body.classList.toggle('demo-route', demoMode);
   const hero = `<section class="hero" aria-labelledby="page-title">
       <div class="hero-copy"><span class="kicker">MIDI cleanup for practice takes</span><h1 id="page-title" tabindex="-1">Clean sustain-pedal<br><em>MIDI overlaps.</em></h1><p>For keyboard and e-kit players who need clean practice takes without changing note starts.</p><a class="primary button-link" href="/?demo=1">Try it with sample data</a><span class="action-explainer">Loads an 8-note practice take right away.</span><ul class="hero-facts"><li>Your MIDI stays on this device.</li><li>Works offline after the first visit.</li><li>Export cleaned MIDI free.</li></ul></div>
-      <picture class="hero-art"><source type="image/webp" media="(max-width: 700px)" srcset="/assets/pedal-tape-hero-720.webp"><source type="image/avif" srcset="/assets/pedal-tape-hero.avif"><source type="image/webp" srcset="/assets/pedal-tape-hero.webp"><img src="/assets/pedal-tape-hero.jpg" width="1200" height="800" alt="Risograph collage of a sustain pedal connected to a cassette and tidy piano-roll strip" decoding="async" fetchpriority="high"></picture>
+      <picture class="hero-art"><source type="image/webp" media="(max-width: 700px)" srcset="/assets/pedal-tape-hero-720.b72d80ab.webp"><source type="image/avif" srcset="/assets/pedal-tape-hero.5ad11ba0.avif"><source type="image/webp" srcset="/assets/pedal-tape-hero.5f13e546.webp"><img src="/assets/pedal-tape-hero.6e7a460f.jpg" width="1200" height="800" alt="Risograph collage of a sustain pedal connected to a cassette and tidy piano-roll strip" decoding="async" fetchpriority="high"></picture>
       <div class="hero-note" aria-label="How it works"><b>01</b> capture <span>→</span> <b>02</b> inspect <span>→</span> <b>03</b> export</div>
     </section>`;
   const inputDeck = `<section class="input-deck" id="workspace" aria-labelledby="input-title">
@@ -222,7 +222,7 @@ function render(preferredFocus?: string, deferFocus = false): void {
       <div class="buy-panel"><strong class="unlocked">No checkout in this build</strong><p>All available controls are ready to use. Read the privacy page to see what stays on your device.</p><a class="secondary button-link" href="/privacy/">Read privacy</a></div>
     </section>
   </main>
-  <footer><div><strong>Rhythm Pedal Tidy</strong><span>Clean sustain-pedal overlaps on this device.</span></div><nav aria-label="Legal"><a href="/privacy/">Privacy</a><a href="/terms/">Terms</a><a href="https://github.com/B-Divyesh/sf-rhythm-pedal-tidy">Source</a></nav><p>Built by Param Factory · ${BUILD_ID}</p></footer>
+  <footer><div><strong>Rhythm Pedal Tidy</strong><span>Clean sustain-pedal overlaps on this device.</span></div><nav aria-label="Legal"><a href="/privacy/">Privacy</a><a href="/terms/">Terms</a><a href="https://github.com/B-Divyesh/sf-rhythm-pedal-tidy">Source on GitHub</a></nav><p>Built by Param Factory · ${BUILD_ID}</p></footer>
   <div id="route-announcer" class="visually-hidden" role="status" aria-live="polite"></div>
   <div id="update-toast" class="update-toast" hidden><span>A fresh version is ready.</span><button data-action="update">Update now</button></div>`;
   bindEvents();
@@ -405,11 +405,16 @@ async function init(): Promise<void> {
       });
     } catch { /* the app remains usable without installation support */ }
   }
-  try {
-    await fetch(`/robots.txt?online=${Date.now()}`, { method: 'HEAD', cache: 'no-store' });
-  } catch {
+  if (!navigator.onLine) {
     offline = true;
     render();
+  } else {
+    try {
+      await fetch(`/robots.txt?online=${Date.now()}`, { method: 'HEAD', cache: 'no-store' });
+    } catch {
+      offline = true;
+      render();
+    }
   }
 }
 

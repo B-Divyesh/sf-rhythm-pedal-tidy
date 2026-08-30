@@ -1,10 +1,10 @@
-const VERSION = 'rpt-v9';
+const VERSION = 'rpt-v10';
 const SHELL = `${VERSION}-shell`;
 const ASSETS = `${VERSION}-assets`;
 const PRECACHE = [
-  '/', '/demo', '/?demo=1', '/?v=9', '/404.html', '/offline.html', '/manifest.webmanifest', '/icons/icon.svg',
+  '/', '/demo', '/?demo=1', '/?v=10', '/404.html', '/offline.html', '/manifest.webmanifest', '/icons/icon.svg',
   '/icons/icon-192.png', '/icons/icon-512.png', '/icons/icon-maskable-512.png', '/icons/apple-touch-icon.png',
-  '/assets/pedal-tape-hero-720.webp', '/assets/pedal-tape-hero.avif', '/assets/pedal-tape-hero.webp', '/assets/pedal-tape-hero.jpg', '/assets/social-card.jpg',
+  '/assets/pedal-tape-hero-720.b72d80ab.webp', '/assets/pedal-tape-hero.5ad11ba0.avif', '/assets/pedal-tape-hero.5f13e546.webp', '/assets/pedal-tape-hero.6e7a460f.jpg', '/assets/social-card.5897ad1a.jpg',
   '/legal.css', '/route-focus.js', '/privacy/', '/terms/'
 ];
 

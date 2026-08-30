@@ -1,8 +1,8 @@
 # Copy audit
 
-Date: 2026-08-30. Audited the production landing route, the seeded demo, and
-README. Counts use visible whitespace-separated words. No sentence exceeds 22
-words. No banned marketing word appears.
+Date: 2026-08-30. Audited the production landing route, seeded demo, legal
+routes, footer links, and README. Counts use visible whitespace-separated
+words. No sentence exceeds 22 words. No banned marketing word appears.
 
 ## Landing and empty workspace
 
@@ -49,7 +49,7 @@ words. No banned marketing word appears.
 | Warm-up in C | 3 | pass |
 | 3 clean cuts suggested | 4 | pass |
 | 2.74s overlap removed | 3 | pass |
-| 7 note releases extended to pedal-up. | 6 | pass |
+| 7 note releases extended while the sustain pedal was held. | 10 | pass; `pedal-overlap-repair` |
 | Repeated pitches are then cut at the next strike; timing and velocity stay untouched. | 14 | pass |
 | Does this repair look right? | 5 | pass |
 | Accepting helps you track whether the pass needed manual work. | 10 | pass |
@@ -58,7 +58,7 @@ words. No banned marketing word appears.
 | Start is 30–240 BPM, Finish is 100–300 BPM, and Step is 1–30 BPM. | 13 | pass |
 | Each completed replay adds 5 BPM, up to 120. | 9 | pass |
 | Export the cleaned take | 4 | pass |
-| Pedal sustain is baked into clean note lengths. | 8 | pass |
+| The cleaned note lengths include the sustain-pedal holds. | 8 | pass; `pedal-overlap-repair` |
 | Export cleaned MIDI | 3 | pass |
 | Export take | 2 | pass |
 | Cleanup accepted and saved with this take. | 7 | pass |
@@ -66,6 +66,15 @@ words. No banned marketing word appears.
 The removed sentence “Playback is a simple synth preview” is not published.
 The six quantitative tempo boundaries are covered by
 `@claim:tempo-control-ranges`.
+
+## Legal routes and external links
+
+| Visitor-facing copy | Words | Result |
+| --- | ---: | --- |
+| 404 / PAGE NOT FOUND | 4 | pass; literal recovery label |
+| Source on GitHub | 3 | pass; names external destination |
+| public source repository on GitHub | 5 | pass; names external destination |
+| MIT License on GitHub | 4 | pass; names external destination |
 
 ## README sentence audit
 
