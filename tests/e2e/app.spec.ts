@@ -99,6 +99,13 @@ test('sample cleanup works at mobile width and survives offline', async ({ page,
   await expect(page.getByRole('button', { name: /Export cleaned MIDI/i })).toBeVisible();
 });
 
+test('a first service-worker install does not offer a false update', async ({ page }) => {
+  await page.goto('/');
+  await page.evaluate(() => navigator.serviceWorker.ready);
+  await page.waitForFunction(() => Boolean(navigator.serviceWorker.controller));
+  await expect(page.locator('#update-toast')).toBeHidden();
+});
+
 test('mobile Plus content stays reachable inside its section', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/');
