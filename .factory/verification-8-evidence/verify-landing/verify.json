@@ -1,0 +1,14 @@
+{
+  "url": "https://rhythm-pedal-tidy.sociobot.in/",
+  "loadMs": 963,
+  "errors": [],
+  "a11y": {
+    "title": "Rhythm Pedal Tidy — clean sustain-pedal MIDI",
+    "lang": "en",
+    "h1": 1,
+    "main": true,
+    "imgsMissingAlt": 0,
+    "buttonsUnlabeled": 0,
+    "textLength": 1582
+  }
+}

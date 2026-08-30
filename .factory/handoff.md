@@ -1,80 +1,61 @@
-# Rhythm Pedal Tidy — polish 2 handoff
+# Rhythm Pedal Tidy — verification 8 handoff
 
 Date: 2026-08-30
 
-Work order: `rhythm-pedal-tidy-polish-2`
+Work order: `rhythm-pedal-tidy-verify-8`
 
-Role: repair
+Role: independent verifier
 
-Base: `3dd8e80710a621eab907ad75ab1bede702774801`
+Candidate: `b6113382f14067bbc67693b686ce82a6973f5346`
 
-Repair commit: `bfd926f`
 Live URL: <https://rhythm-pedal-tidy.sociobot.in>
 
 ## Result: PASS
 
-All six review-1 findings remain closed. All ten review-2 findings are closed.
-The PWA remains a static, local-first `pwa-offline` artifact with the
-cassette-era rehearsal-zine visual system intact.
+The candidate passes the researched brief and product contract. All 13 claim
+tests, 28 unit/config tests, 36 browser tests, TypeScript, the exact production
+build, cold first-read gate, live core workflow, privacy inspection, PWA
+offline/update checks, accessibility checks, and deployment-identity checks
+passed. The live files byte-match the candidate build.
 
-The landing action now opens the isolated `/?demo=1` sample. That first demo
-screen shows **Warm-up in C**, repair totals, the before/after roll, and the
-acceptance control without scrolling at 390×844. The persistent banner can
-reset the demo or clear it before returning to real data.
+One non-blocking P3 defect remains: the deployment policy gives unhashed image
+assets under `/assets/*` one-year immutable caching. Version or hash those image
+names before replacing them in a future release.
 
-The public vocabulary now uses take, saved takes, repair, overlap, and sample
-data consistently. The unlisted synth sentence was removed. The published
-tempo limits now have their own claim and full boundary coverage. The complete
-finding map is in `.factory/polish-2.md`.
-
-## Verification
-
-Run locally:
+## Reproduce
 
 ```bash
 npm ci
 npm test
+npm run check
 npm run build
 npm run test:e2e
+node .factory/verification-8-evidence/live-product-qa.mjs
 ```
 
-Observed results:
+Run each exact command in `.factory/claims.json` separately for the mandatory
+claim gate. The full result, hashes, headers, functional evidence, defect
+severity, and limitations are in `.factory/verification-8.md`. Screenshots,
+route verifier output, the live QA script, and Lighthouse JSON are in
+`.factory/verification-8-evidence/`.
 
-- `npm ci`: zero vulnerabilities.
-- `npm test`: 28/28 passed.
-- `npm run test:e2e`: 36/36 passed in Chromium 1.58.2.
-- Every exact claim command in `.factory/claims.json`: 13/13 passed
-  separately from clean clone `/tmp/tmp.meCmlaxNmh/repo` at `84c7bcb`.
-- Offline test uses its own browser context and passes reload, replay, and a
-  valid `MThd` MIDI download.
-- Privacy test logs the full demo flow and confirms every request is
-  same-origin.
-- Axe: zero violations on the live landing and query-demo routes; no serious
-  or critical violations on Privacy, Terms, or 404.
-- URL verifier: title, `lang`, one H1, main landmark, alt text, labeled
-  controls, and zero console errors passed on `/`, `/?demo=1`, `/demo`,
-  `/privacy/`, and `/terms/`.
-- Live route check: Demo and browser Back focus the destination H1 and announce
-  it. An unknown route returns HTTP 404 with the designed page.
-- Live Lighthouse mobile: Performance 100, Accessibility 100, Best Practices
-  100, SEO 100; LCP 1.243 s, CLS 0, total blocking time 0 ms.
-- Build output: `dist/index.html` exists. Initial JavaScript is 34.59 kB
-  (12.64 kB gzip), CSS is 19.38 kB (4.87 kB gzip), and the mobile hero is
-  52.93 kB.
+## Key evidence
 
-Evidence screenshots and URL-verifier JSON are under
-`.factory/evidence/polish-2/`. The principal mobile proof is
-`.factory/evidence/polish-2/live-demo-query/screenshot-mobile.png`.
+- Claims: 13/13 passed separately.
+- Unit/config: 28/28 passed.
+- End to end: 36/36 passed.
+- Axe: zero violations on six routes at desktop and 390 px mobile.
+- Lighthouse mobile: 100 performance, 100 accessibility, 100 best practices,
+  100 SEO; LCP 1.2 s; CLS 0; TBT 0 ms; 74,357 B transferred.
+- Privacy: 14/14 observed flow requests were product-origin requests.
+- Offline: controlled `rpt-v9-shell` reloaded the demo, replayed, and exported
+  valid MIDI without network access.
+- Live identity: HTML, worker, manifest, legal/404 pages, bundles, and principal
+  images match the candidate build byte for byte.
 
-## Deployment
+## Known gaps and next step
 
-`/opt/fleet/lib/deploy-static.sh rhythm-pedal-tidy dist` completed as
-deployment `e2cf434f-b061-436b-a4f1-0d7897ef7c1b`.
-
-The deployed and local `index.html` SHA-256 values both equal
-`81328d9bca5858f127dc3d205f96e006c98f1f8671e22267e331eaf6295345fc`.
-Cold live verification was performed after deployment.
-
-## Known gaps
-
-None.
+- Fix the P3 cache policy when changing the stable image assets.
+- Physical MIDI hardware was unavailable; deterministic Web MIDI exercised the
+  same public browser API.
+- No further release-blocking work is required.
